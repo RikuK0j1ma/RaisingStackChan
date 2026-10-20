@@ -121,7 +121,11 @@ Quest のメニューから「再キャリブ」。StackChan が QR を再表示
 
 ## リスクと要検証
 
-- QR 検出 API: Meta XR SDK 207 の MRUK に QR トラッキングがあるか要確認。無ければ Passthrough Camera API と ZXing で自前検出する。どちらも Quest 3 / 3S 限定。
+- QR 検出 API（調査済み）: Meta XR SDK 207.0.1 の MRUK に QR トラッキングがある（`MRUK.SceneSettings.TrackerConfiguration.QRCodeTrackingEnabled`、`MRUKTrackable.MarkerPayloadString`、`MRUK.QRCodeTrackingSupported`）。これを採用し、Passthrough Camera API + ZXing は不要（`MrukQrStackChanPoseProvider`）。
+  - 要件: Quest 3 / 3S（`QRCodeTrackingSupported` で確認）、Scene 権限（`OVRPermissionsRequester.ScenePermission`）。MR シーンに `MRUK` と `OVRCameraRig` が必要。Passthrough Camera Access（`HEADSET_CAMERA` 権限）は不要。必要な Quest OS の最低バージョンは SDK のソースから分からないので要確認。
+  - 要検証（実機）: QR の姿勢の軸（面の法線が +Z か）と、`Trackable` の原点が QR の中心か。口のオフセット（`EatConfig.MouthLocalOffset`、現在は仮値）。検出の更新頻度（MRUK のトラッカーは約 1Hz）と距離の限界。
+  - MRUK を置くと `LoadSceneOnStartup` で部屋スキャンを要求するため、不要なら MRUK の `Load Scene On Startup` を切る。
+  - MRUK が無いシーン（エディタなど）では Null 実装にフォールバックする。
 - QR が小さい: 2 インチ画面なので、検出距離は 1m 程度が限界。画面の反射にも注意する。初回だけ近づけば足りる。
 - Wi-Fi: 端末間通信を遮断する設定（ゲストネットワークなど）では接続できない。
 - 首の動き: MR 中は固定が前提。動かすなら、サーボ角を Quest に送って補正する。
