@@ -20,12 +20,64 @@ Quest の MR（パススルー）で、StackChan のいる場所に球体（餌�
 
 QR は「接続先（IP・ポート・トークン）」と「顔の位置」を一度に渡す。ペアリングと位置合わせが同じ操作になる。
 
+### QR のペイロード
+
+QR の文字列は接続 URL そのもの。Unity 側のパーサーと一致させている。
+
+```
+ws://<ip>:8765/ws?token=<token>
+```
+
+- `<ip>` は StackChan の Wi-Fi（STA）の IPv4。`<token>` は 16 桁の 16 進文字列。全体で約 55 文字（QR バージョン 4 前後）。
+- 当初案の `rsc://<ip>:<port>?t=<token>` は採らない。URL をそのまま接続に使えるので、変換が要らない。
+- 画面（320x240）に、黒地に白の QR（176px、周囲に白い余白）を中央寄せで全画面表示する。上部に案内テキスト（英語。標準フォントに日本語の字が無いため「Questで見てね」は出せない）。
+- Wi-Fi が未接続（IP が無い）ときは QR の代わりに案内（BLE で StackChan World アプリから Wi-Fi を設定して MR LINK を開き直す）を出す。IP が後から取れたら自動で QR に切り替わる。
+- Quest が接続（認証成功）したら QR を消して顔に戻る。Quest からの `showQr` で再表示する。実装は `mr_link_qr.{h,cpp}`。
+
 ## 通信
 
-StackChan が WebSocket サーバー、Quest がクライアント。素の JSON テキストを使う。
+StackChan が WebSocket サーバー、Quest がクライアント。素の JSON テキスト（テキストフレーム、1 メッセージ 1024 バイト以下）を使う。実装は `firmware/overlay/main/apps/app_mr_link/mr_link_server.{h,cpp}`。
 
-- Quest → StackChan: `{"type":"emotion","value":"happy","durationMs":3000}`、`{"type":"showQr"}`
-- StackChan → Quest: `{"type":"hello","mac":"...","fw":"..."}`
+### 接続
+
+- URL: `ws://<host>:8765/ws?token=<token>`。`<host>` は QR で受け取った IP、または mDNS の `stackchan.local`。
+- トークンは StackChan の起動ごとに生成する 16 桁の 16 進文字列。QR で Quest へ渡す。NVS には永続化しない。
+  - 再起動するとトークンが変わるので、Quest が保存した前回の URL では接続できない（認証で切断される）。この場合は QR を読み直す。MR LINK を開くと必ず QR が出るので、それが再接続の手順になる（再キャリブと同じ操作）。
+  - 同じ起動中は、MR LINK を閉じて開き直してもトークンは同じ。Quest が落ちて戻っただけなら、保存した URL でそのまま再接続できる。
+  - Quest 側は、保存済み URL での接続が認証で切断されたら「QR を読んでください」へ戻すこと。
+- トークンが誤りなら、接続直後に StackChan が切断する（WebSocket のハンドシェイク完了後に検証するため、HTTP エラーではなく切断で知る）。切断後の `message` は一切処理しない。
+- 接続は 1 クライアントのみ。認証済みの新しい接続が来たら、古い接続を切って置き換える（Quest が落ちて半開きになった接続で塞がらないため）。
+- 切断は TCP keep-alive（約 20 秒）と WebSocket の close で検知する。切断後は待受けに戻る。
+- mDNS: ホスト名 `stackchan.local`、サービス `_stackchan._tcp`（TXT `proto=1`）。端末によっては `.local` を解決できないので、IP（QR 由来）にフォールバックできるようにする。
+
+### メッセージ
+
+共通: `type`（文字列）が必須。未知の `type`、`type` の無い JSON、不正な JSON は無視する（切断しない）。
+
+Quest → StackChan:
+
+| type | 項目 | 説明 |
+|---|---|---|
+| `emotion` | `value`（`happy` ほか）、`durationMs`（省略時は StackChan 側の既定） | 表情を変える。`durationMs` 後に Neutral へ戻す |
+| `showQr` | なし | QR を再表示する（再キャリブ） |
+
+StackChan → Quest:
+
+| type | 項目 | 説明 |
+|---|---|---|
+| `hello` | `proto`（プロトコル版、現在 1）、`mac`（`AA:BB:CC:DD:EE:FF`）、`fw`（`V1.x` 形式） | 認証に成功した直後に 1 回送る |
+
+例:
+
+```
+{"type":"emotion","value":"happy","durationMs":3000}
+{"type":"showQr"}
+{"type":"hello","proto":1,"mac":"AA:BB:CC:DD:EE:FF","fw":"V1.0.0"}
+```
+
+### ファーム側の購読 API
+
+`mr_link::GetServer()` から `addMessageHandler("emotion", ...)`、`addConnectionHandler(...)`、`sendText(...)` を使う。ハンドラは HTTP サーバーのタスクで呼ばれるので、短く返し、LVGL を触るときは `LvglLockGuard` を取る。
 
 公式ファームの既存の LAN WebSocket（`hal/utils/local_network`）は、StackChan がクライアントで、接続先をクラウド経由で受け取る作りなので使わない。
 
@@ -41,7 +93,7 @@ StackChan が WebSocket サーバー、Quest がクライアント。素の JSON
 
 ### 2回目以降
 
-アプリ起動 → アンカー復元 → 前回の接続先または mDNS で自動再接続。QR は不要。
+アプリ起動 → アンカー復元 → 前回の接続先または mDNS で自動再接続。StackChan を再起動していなければ QR は不要（再起動後はトークンが変わるので QR を読み直す）。
 
 ### 遊ぶ
 
