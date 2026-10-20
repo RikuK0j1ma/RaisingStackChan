@@ -5,6 +5,9 @@
         "RikuK0j1ma.RaisingStackChan.Entity",
         "RikuK0j1ma.RaisingStackChan.UseCase",
         "RikuK0j1ma.RaisingStackChan.Presentation",
+        "RikuK0j1ma.RaisingStackChan.Context",
+        "UniTask",
+        "Unity.InputSystem",
         "ZString",
         "Unity.TextMeshPro",
         "VContainer"
