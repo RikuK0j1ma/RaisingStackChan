@@ -49,6 +49,16 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.Register<FeedSphereUseCase>(Lifetime.Singleton); // subscribes to ISphereSpawner.Spawned itself
             builder.RegisterEntryPoint<FeedSphereEntryPoint>();
 
+            // Face anchor persistence (#10). Spatial Anchors only work on device; elsewhere the QR flow is used.
+            builder.Register<PlayerPrefsFaceAnchorIdStore>(Lifetime.Singleton).As<IFaceAnchorIdStore>();
+#if UNITY_ANDROID && !UNITY_EDITOR
+            builder.Register<RikuK0j1ma.RaisingStackChan.Platform.Meta.SpatialAnchorFaceAnchorStore>(Lifetime.Singleton).As<IFaceAnchorStore>();
+#else
+            builder.Register<NullFaceAnchorStore>(Lifetime.Singleton).As<IFaceAnchorStore>();
+#endif
+            builder.Register<NullCalibrationGuide>(Lifetime.Singleton).As<ICalibrationGuide>(); // TODO: Presentation guide UI
+            builder.Register<FaceCalibrationUseCase>(Lifetime.Singleton);
+
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
 
             // Development-only overrides (DebugTools) hook in here.
