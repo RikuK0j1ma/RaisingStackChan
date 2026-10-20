@@ -36,9 +36,8 @@ void AppMrLink::onOpen()
     auto& server = mr_link::GetServer();
 
     // Log what arrives. The emotion / showQr features subscribe the same way.
-    _handler_ids.push_back(server.addMessageHandler("emotion", [](const ArduinoJson::JsonDocument& doc) {
-        mclog::tagInfo("MR LINK", "emotion: value={} durationMs={}", doc["value"] | "", doc["durationMs"] | 0);
-    }));
+    // "emotion" messages and the Happy flash on connect are handled by EmotionController
+    _emotion.attach(server);
     // Re-calibration: Quest asks for the QR again
     _handler_ids.push_back(server.addMessageHandler("showQr", [](const ArduinoJson::JsonDocument&) {
         mclog::tagInfo("MR LINK", "showQr");
@@ -67,6 +66,7 @@ void AppMrLink::onOpen()
 void AppMrLink::onRunning()
 {
     _qr.update();  // picks up a Wi-Fi address that arrives late
+    _emotion.update();
 }
 
 void AppMrLink::onClose()
@@ -79,6 +79,7 @@ void AppMrLink::onClose()
     }
     _handler_ids.clear();
     server.stop();
+    _emotion.detach(server);
     _qr.hide();
 
     LvglLockGuard lock;
