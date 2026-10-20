@@ -5,7 +5,8 @@
         "RikuK0j1ma.RaisingStackChan.Entity",
         "RikuK0j1ma.RaisingStackChan.UseCase",
         "UniTask",
-        "VContainer"
+        "VContainer",
+        "Oculus.VR"
     ],
     "includePlatforms": ["Editor", "Android"],
     "excludePlatforms": [],
