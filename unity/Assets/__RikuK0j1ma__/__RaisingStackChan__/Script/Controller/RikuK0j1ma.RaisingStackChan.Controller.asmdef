@@ -5,7 +5,8 @@
         "RikuK0j1ma.RaisingStackChan.Entity",
         "RikuK0j1ma.RaisingStackChan.UseCase",
         "UniTask",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
