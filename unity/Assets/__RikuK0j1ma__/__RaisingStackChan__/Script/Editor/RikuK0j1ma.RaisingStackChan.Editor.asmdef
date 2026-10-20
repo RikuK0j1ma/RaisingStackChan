@@ -1,0 +1,22 @@
+{
+    "name": "RikuK0j1ma.RaisingStackChan.Editor",
+    "rootNamespace": "RikuK0j1ma.RaisingStackChan.Editor",
+    "references": [
+        "RikuK0j1ma.RaisingStackChan.Entity",
+        "RikuK0j1ma.RaisingStackChan.UseCase",
+        "RikuK0j1ma.RaisingStackChan.Infrastructure",
+        "RikuK0j1ma.RaisingStackChan.Presentation",
+        "RikuK0j1ma.RaisingStackChan.Context",
+        "VContainer",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
