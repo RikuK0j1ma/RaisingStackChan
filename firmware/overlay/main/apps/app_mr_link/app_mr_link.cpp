@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: MIT
  */
 #include "app_mr_link.h"
+#include "mr_link_neck.h"
 #include "mr_link_qr.h"
 #include "mr_link_server.h"
 #include <hal/hal.h>
@@ -57,6 +58,9 @@ void AppMrLink::onOpen()
         _qr.show();
     }
 
+    _neck.engage();
+    _touch.attach(lv_screen_active());
+
     _button_quit = std::make_unique<Button>(lv_screen_active());
     _button_quit->setAlign(LV_ALIGN_TOP_RIGHT);  // off the QR
     _button_quit->label().setText("QUIT");
@@ -67,6 +71,10 @@ void AppMrLink::onRunning()
 {
     _qr.update();  // picks up a Wi-Fi address that arrives late
     _emotion.update();
+    _neck.update();
+    if (_touch.consume() && !_qr.isShown()) {
+        _qr.show();  // touch brings the QR back (re-calibration)
+    }
 }
 
 void AppMrLink::onClose()
@@ -81,7 +89,9 @@ void AppMrLink::onClose()
     server.stop();
     _emotion.detach(server);
     _qr.hide();
+    _neck.release();
 
     LvglLockGuard lock;
+    _touch.detach();
     _button_quit.reset();
 }

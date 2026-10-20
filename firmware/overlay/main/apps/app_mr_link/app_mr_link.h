@@ -3,6 +3,8 @@
  */
 #pragma once
 #include "mr_link_emotion.h"
+#include "mr_link_neck.h"
+#include "mr_link_touch.h"
 #include <mooncake.h>
 #include <vector>
 
@@ -21,5 +23,7 @@ public:
 
 private:
     mr_link::EmotionController _emotion;
+    mr_link::NeckLock _neck;
+    mr_link::TouchTrigger _touch;
     std::vector<int> _handler_ids;  // mr_link::Server subscriptions made while open
 };
