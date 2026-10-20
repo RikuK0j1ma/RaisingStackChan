@@ -30,7 +30,11 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             // use case) calls TrySetEndpointFromQr + ConnectAsync. Until then the endpoint is unknown,
             // so the real link would only retry mDNS/last-endpoint; keep Null to run without a StackChan.
             builder.Register<NullStackChanLink>(Lifetime.Singleton).As<IStackChanLink>();
-            builder.Register<NullStackChanPoseProvider>(Lifetime.Singleton).As<IStackChanPoseProvider>();
+#if UNITY_EDITOR || UNITY_ANDROID
+            // QR-based face pose (MRUK). Falls back to Null when MRUK is not in the scene.
+            if (!RikuK0j1ma.RaisingStackChan.Platform.Meta.MetaPlatformInstaller.TryRegisterQrPoseProvider(builder))
+#endif
+                builder.Register<NullStackChanPoseProvider>(Lifetime.Singleton).As<IStackChanPoseProvider>();
 
             // Real sphere spawner (Presentation) + controller input. Safe without a headset: the XR
             // devices are simply untracked, so no sphere appears. NullSphereSpawner stays for tests.
