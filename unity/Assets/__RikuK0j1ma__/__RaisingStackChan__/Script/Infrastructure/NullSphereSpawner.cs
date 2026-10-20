@@ -15,5 +15,7 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
         }
 
         public void Despawn(int id) { }
+
+        public bool IsHeld(int id) => false;
     }
 }

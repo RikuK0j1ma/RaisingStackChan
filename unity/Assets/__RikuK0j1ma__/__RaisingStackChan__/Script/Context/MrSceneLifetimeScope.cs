@@ -1,5 +1,6 @@
 using RikuK0j1ma.RaisingStackChan.Entity;
 using RikuK0j1ma.RaisingStackChan.Infrastructure;
+using RikuK0j1ma.RaisingStackChan.Presentation;
 using RikuK0j1ma.RaisingStackChan.UseCase;
 using UnityEngine;
 using VContainer;
@@ -26,6 +27,11 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.Register<NullStackChanLink>(Lifetime.Singleton).As<IStackChanLink>();
             builder.Register<NullStackChanPoseProvider>(Lifetime.Singleton).As<IStackChanPoseProvider>();
             builder.Register<NullSphereSpawner>(Lifetime.Singleton).As<ISphereSpawner>();
+
+            builder.Register<SuckInEatEffect>(Lifetime.Singleton).As<IEatEffect>();
+            builder.Register<NullEatSound>(Lifetime.Singleton).As<IEatSound>();
+            builder.Register<FeedSphereUseCase>(Lifetime.Singleton); // spawner side must call Track(id)
+            builder.RegisterEntryPoint<FeedSphereEntryPoint>();
 
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
         }

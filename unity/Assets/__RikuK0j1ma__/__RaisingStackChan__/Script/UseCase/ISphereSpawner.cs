@@ -8,5 +8,8 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         int Spawn(Vector3 position);
         bool TryGetPosition(int id, out Vector3 position);
         void Despawn(int id);
+
+        /// <summary>True while the sphere is grabbed by the player.</summary>
+        bool IsHeld(int id);
     }
 }

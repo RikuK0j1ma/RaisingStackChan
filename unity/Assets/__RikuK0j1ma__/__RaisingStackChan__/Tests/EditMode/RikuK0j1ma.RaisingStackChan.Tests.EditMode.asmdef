@@ -5,7 +5,9 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "RikuK0j1ma.RaisingStackChan.Entity",
-        "RikuK0j1ma.RaisingStackChan.Infrastructure"
+        "RikuK0j1ma.RaisingStackChan.Infrastructure",
+        "RikuK0j1ma.RaisingStackChan.UseCase",
+        "UniTask"
     ],
     "includePlatforms": [
         "Editor"
