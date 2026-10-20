@@ -59,6 +59,7 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
             Assert.AreEqual("ws", uri.Scheme);
             Assert.AreEqual(81, uri.Port);
             StringAssert.Contains("token=a%20b", uri.Query);
+            Assert.AreEqual("/ws", uri.AbsolutePath);
         }
 
         [Test]

@@ -26,10 +26,12 @@ namespace RikuK0j1ma.RaisingStackChan.Context
         {
             builder.RegisterInstance(eatConfig);
 
-            // TODO(#8): switch to WebSocketStackChanLink (Infrastructure) once the QR flow (calibration
-            // use case) calls TrySetEndpointFromQr + ConnectAsync. Until then the endpoint is unknown,
-            // so the real link would only retry mDNS/last-endpoint; keep Null to run without a StackChan.
+            // Real WebSocket link on device only. CalibrationEntryPoint feeds it the QR endpoint and connects.
+#if UNITY_ANDROID && !UNITY_EDITOR
+            builder.Register<WebSocketStackChanLink>(Lifetime.Singleton).As<IStackChanLink>();
+#else
             builder.Register<NullStackChanLink>(Lifetime.Singleton).As<IStackChanLink>();
+#endif
 #if UNITY_EDITOR || UNITY_ANDROID
             // QR-based face pose (MRUK). Falls back to Null when MRUK is not in the scene.
             if (!RikuK0j1ma.RaisingStackChan.Platform.Meta.MetaPlatformInstaller.TryRegisterQrPoseProvider(builder))
@@ -56,8 +58,12 @@ namespace RikuK0j1ma.RaisingStackChan.Context
 #else
             builder.Register<NullFaceAnchorStore>(Lifetime.Singleton).As<IFaceAnchorStore>();
 #endif
-            builder.Register<NullCalibrationGuide>(Lifetime.Singleton).As<ICalibrationGuide>(); // TODO: Presentation guide UI
+            builder.Register<NullCalibrationGuide>(Lifetime.Singleton).As<ICalibrationGuide>(); // the setup guide UI drives itself from SetupGuideUseCase
             builder.Register<FaceCalibrationUseCase>(Lifetime.Singleton);
+
+            builder.Register<SetupGuideUseCase>(Lifetime.Singleton);
+            builder.Register<RecalibrationService>(Lifetime.Singleton);
+            builder.RegisterEntryPoint<SetupGuideEntryPoint>();
 
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
 

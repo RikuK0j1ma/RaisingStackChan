@@ -1,4 +1,3 @@
-using System.IO;
 using System.Linq;
 using RikuK0j1ma.RaisingStackChan.Context;
 using RikuK0j1ma.RaisingStackChan.Entity;
@@ -31,6 +30,7 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
             LinkVContainerSettings(rootPrefab);
             CreateBootScene();
             CreateMrScene(config);
+            ApplyMetaProjectConfig();
             RegisterBuildScenes();
             AssetDatabase.SaveAssets();
             Debug.Log("[SceneSetupMenu] Done. Open Boot scene and press Play.");
@@ -86,15 +86,62 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
             EditorSceneManager.SaveScene(scene, BootScenePath);
         }
 
+        /// <summary>Production MR scene: OVRCameraRig + passthrough + MRUK (QR tracking) + MrSceneLTS.</summary>
         private static void CreateMrScene(EatConfig config)
         {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            var rig = InstantiatePackagePrefab("OVRCameraRig");
+            if (rig != null) SetUpPassthrough(rig);
+            InstantiatePackagePrefab("MRUK");
+
+            var light = new GameObject("Directional Light").AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+
             var go = new GameObject("MrSceneLTS");
             var scope = go.AddComponent<MrSceneLifetimeScope>();
             var so = new SerializedObject(scope);
             so.FindProperty("eatConfig").objectReferenceValue = config;
             so.ApplyModifiedProperties();
             EditorSceneManager.SaveScene(scene, MrScenePath);
+        }
+
+        private static GameObject InstantiatePackagePrefab(string name)
+        {
+            var guid = AssetDatabase.FindAssets(name + " t:Prefab")
+                .FirstOrDefault(g => System.IO.Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(g)) == name);
+            if (guid == null)
+            {
+                Debug.LogWarning($"[SceneSetupMenu] Prefab '{name}' not found. Add it to the MR scene manually.");
+                return null;
+            }
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+            return (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        }
+
+        private static void SetUpPassthrough(GameObject rig)
+        {
+            var manager = rig.GetComponent<OVRManager>();
+            if (manager != null) manager.isInsightPassthroughEnabled = true;
+
+            if (rig.GetComponent<OVRPassthroughLayer>() == null) rig.AddComponent<OVRPassthroughLayer>();
+
+            // Transparent background so the passthrough underlay shows through.
+            var eye = rig.GetComponentsInChildren<Camera>(true).FirstOrDefault(c => c.name == "CenterEyeAnchor");
+            if (eye == null) return;
+            eye.clearFlags = CameraClearFlags.SolidColor;
+            eye.backgroundColor = new Color(0f, 0f, 0f, 0f);
+        }
+
+        /// <summary>Quest features this app needs (passthrough, scene for QR tracking, spatial anchors).</summary>
+        private static void ApplyMetaProjectConfig()
+        {
+            var config = OVRProjectConfig.CachedProjectConfig;
+            config.insightPassthroughSupport = OVRProjectConfig.FeatureSupport.Required;
+            config.sceneSupport = OVRProjectConfig.FeatureSupport.Required;
+            config.anchorSupport = OVRProjectConfig.AnchorSupport.Enabled;
+            OVRProjectConfig.CommitProjectConfig(config);
         }
 
         private static void RegisterBuildScenes()

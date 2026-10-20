@@ -85,6 +85,17 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             FacePoseConfirmed?.Invoke(facePose);
         }
 
+        /// <summary>Uses a pose restored from a saved anchor, without raising <see cref="FacePoseConfirmed"/>.</summary>
+        public void ApplyRestoredPose(Pose pose)
+        {
+            facePose = pose;
+            hasPose = true;
+            confirmed = true;
+        }
+
+        /// <summary>Recalibration: the next tracked QR raises <see cref="FacePoseConfirmed"/> again.</summary>
+        public void ResetConfirmation() => confirmed = false;
+
         public bool TryGetFacePose(out Pose pose)
         {
             pose = facePose;
