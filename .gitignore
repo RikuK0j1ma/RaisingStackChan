@@ -1,0 +1,42 @@
+## Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+OtherContents/
+.vs/
+.consulo/
+ExportedObj/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.utmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.DS_Store
+*.pidb.meta
+*.pdb.meta
+sysinfo.txt
+*.apk
+*.unitypackage
+*.keystore
+
+## Firmware (upstream を複製してビルドする作業ディレクトリ)
+firmware/.work/
+
+## Editor
+.idea/
+*.DotSettings.user
+
+## Claude Code の個人設定
+**/.claude/settings.local.json

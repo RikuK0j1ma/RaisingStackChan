@@ -1,0 +1,19 @@
+{
+    "name": "RikuK0j1ma.RaisingStackChan.Controller",
+    "rootNamespace": "RikuK0j1ma.RaisingStackChan.Controller",
+    "references": [
+        "RikuK0j1ma.RaisingStackChan.Entity",
+        "RikuK0j1ma.RaisingStackChan.UseCase",
+        "UniTask",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

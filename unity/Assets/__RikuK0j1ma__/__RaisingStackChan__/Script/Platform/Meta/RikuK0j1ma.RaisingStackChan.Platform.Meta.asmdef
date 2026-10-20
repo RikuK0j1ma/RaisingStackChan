@@ -1,0 +1,19 @@
+{
+    "name": "RikuK0j1ma.RaisingStackChan.Platform.Meta",
+    "rootNamespace": "RikuK0j1ma.RaisingStackChan.Platform.Meta",
+    "references": [
+        "RikuK0j1ma.RaisingStackChan.Entity",
+        "RikuK0j1ma.RaisingStackChan.UseCase",
+        "UniTask",
+        "VContainer"
+    ],
+    "includePlatforms": ["Editor", "Android"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

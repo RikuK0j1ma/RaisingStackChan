@@ -1,0 +1,16 @@
+{
+    "name": "RikuK0j1ma.RaisingStackChan.Extension",
+    "rootNamespace": "RikuK0j1ma.RaisingStackChan.Extension",
+    "references": [
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
