@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: MIT
  */
 #pragma once
+#include "mr_link_emotion.h"
 #include <mooncake.h>
 #include <vector>
 
@@ -19,5 +20,6 @@ public:
     void onClose() override;
 
 private:
+    mr_link::EmotionController _emotion;
     std::vector<int> _handler_ids;  // mr_link::Server subscriptions made while open
 };

@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: MIT
  */
 #include "app_mr_link.h"
+#include "mr_link_emotion.h"
 #include "mr_link_server.h"
 #include <hal/hal.h>
 #include <mooncake.h>
@@ -34,9 +35,7 @@ void AppMrLink::onOpen()
     auto& server = mr_link::GetServer();
 
     // Log what arrives. The emotion / showQr features subscribe the same way.
-    _handler_ids.push_back(server.addMessageHandler("emotion", [](const ArduinoJson::JsonDocument& doc) {
-        mclog::tagInfo("MR LINK", "emotion: value={} durationMs={}", doc["value"] | "", doc["durationMs"] | 0);
-    }));
+    _emotion.attach(server);
     _handler_ids.push_back(server.addMessageHandler(
         "showQr", [](const ArduinoJson::JsonDocument&) { mclog::tagInfo("MR LINK", "showQr"); }));
 
@@ -55,6 +54,7 @@ void AppMrLink::onOpen()
 
 void AppMrLink::onRunning()
 {
+    _emotion.update();
 }
 
 void AppMrLink::onClose()
@@ -67,6 +67,7 @@ void AppMrLink::onClose()
     }
     _handler_ids.clear();
     server.stop();
+    _emotion.detach(server);
 
     LvglLockGuard lock;
     _button_quit.reset();
