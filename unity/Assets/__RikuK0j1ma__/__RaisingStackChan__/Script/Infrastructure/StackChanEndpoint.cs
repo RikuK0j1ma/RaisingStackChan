@@ -27,7 +27,7 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
 
         public Uri ToUri()
         {
-            var query = Token.Length > 0 ? "/?token=" + Uri.EscapeDataString(Token) : "/";
+            var query = Token.Length > 0 ? "/ws?token=" + Uri.EscapeDataString(Token) : "/ws";
             return new Uri("ws://" + Host + ":" + Port + query);
         }
 
@@ -36,7 +36,7 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
 
         /// <summary>
         /// Parses a QR payload. Accepts JSON {"ip":"..","port":8080,"token":".."} (or "host"),
-        /// or a URL ws://host:port/?token=...
+        /// or a URL ws://host:port/ws?token=...
         /// </summary>
         public static bool TryParse(string payload, out StackChanEndpoint endpoint)
         {
