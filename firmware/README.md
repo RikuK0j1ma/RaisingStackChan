@@ -41,6 +41,7 @@ git add upstream
 
 ## 現状
 
-- `MR LINK` は雛形（QUIT ボタンだけ）。QR 表示と WebSocket サーバーは未実装。
-- WebSocket サーバーの実装時に、`esp_http_server` などを `main/CMakeLists.txt` の `PRIV_REQUIRES` に足す必要がある。公式ファイルの書換えが要るので、そのときに `build.ps1` へ追加する。
+- `MR LINK` は WebSocket サーバー・mDNS・JSON 受信まで実装済み（QR 表示、表情反映、首固定は未実装）。プロトコルは `docs/design.md`。
+- `esp_http_server`・`mdns` は `build.ps1` が `main/CMakeLists.txt` の `PRIV_REQUIRES` と `main/idf_component.yml` に行挿入する。`CONFIG_HTTPD_WS_SUPPORT=y` は `overlay/sdkconfig.defaults.local` で有効にする（`.work/sdkconfig` が既にあるときは削除するか `-Clean`）。
+- 動作確認: アプリを開くとログにトークンが出る。`websocat "ws://<IP>:8765/ws?token=<token>"` などで `{"type":"emotion","value":"happy"}` を送ると受信ログが出る。
 - `build.ps1` は ESP-IDF の環境がある PC での動作を未確認。

@@ -3,6 +3,7 @@
  */
 #pragma once
 #include <mooncake.h>
+#include <vector>
 
 /**
  * @brief MR Link: shows a QR code for the Quest app and reacts to its commands
@@ -16,4 +17,7 @@ public:
     void onOpen() override;
     void onRunning() override;
     void onClose() override;
+
+private:
+    std::vector<int> _handler_ids;  // mr_link::Server subscriptions made while open
 };
