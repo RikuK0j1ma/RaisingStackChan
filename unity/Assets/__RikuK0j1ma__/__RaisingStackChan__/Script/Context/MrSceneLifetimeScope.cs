@@ -45,6 +45,10 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.Register<FeedSphereUseCase>(Lifetime.Singleton); // subscribes to ISphereSpawner.Spawned itself
             builder.RegisterEntryPoint<FeedSphereEntryPoint>();
 
+            builder.Register<SetupGuideUseCase>(Lifetime.Singleton);
+            builder.Register<RecalibrationService>(Lifetime.Singleton); // TODO(#10): subscribe RecalibrationRequested to drop the anchor
+            builder.RegisterEntryPoint<SetupGuideEntryPoint>();
+
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
 
             // Development-only overrides (DebugTools) hook in here.
