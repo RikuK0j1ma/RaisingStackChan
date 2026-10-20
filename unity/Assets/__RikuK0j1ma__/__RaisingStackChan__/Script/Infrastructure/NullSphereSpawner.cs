@@ -6,6 +6,8 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
     /// <summary>Spawner that creates nothing; ids are never valid.</summary>
     public sealed class NullSphereSpawner : ISphereSpawner
     {
+        public event System.Action<int> Spawned { add { } remove { } }
+
         public int Spawn(Vector3 position) => -1;
 
         public bool TryGetPosition(int id, out Vector3 position)

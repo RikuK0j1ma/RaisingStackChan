@@ -23,6 +23,8 @@ namespace RikuK0j1ma.RaisingStackChan.Presentation
             this.config = config;
         }
 
+        public event System.Action<int> Spawned;
+
         public int Spawn(Vector3 position)
         {
             EnsureRoot();
@@ -41,6 +43,7 @@ namespace RikuK0j1ma.RaisingStackChan.Presentation
             var id = nextId++;
             view.Initialize(id, id, config.FreeDamping);
             views[id] = view;
+            Spawned?.Invoke(id);
             return id;
         }
 

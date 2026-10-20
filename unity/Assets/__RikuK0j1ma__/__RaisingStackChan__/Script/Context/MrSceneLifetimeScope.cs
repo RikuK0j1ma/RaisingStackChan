@@ -40,6 +40,11 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.RegisterInstance<IHandInputSource>(new XrControllerInputSource(XRNode.RightHand));
             builder.RegisterEntryPoint<SphereGrabController>();
 
+            builder.Register<SuckInEatEffect>(Lifetime.Singleton).As<IEatEffect>(); // takes SphereConfig
+            builder.Register<NullEatSound>(Lifetime.Singleton).As<IEatSound>();
+            builder.Register<FeedSphereUseCase>(Lifetime.Singleton); // subscribes to ISphereSpawner.Spawned itself
+            builder.RegisterEntryPoint<FeedSphereEntryPoint>();
+
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
         }
     }
