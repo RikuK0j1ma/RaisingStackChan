@@ -46,6 +46,9 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.RegisterEntryPoint<FeedSphereEntryPoint>();
 
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
+
+            // Development-only overrides (DebugTools) hook in here.
+            MrSceneExtension.Invoke(builder);
         }
     }
 }
