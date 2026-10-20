@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using RikuK0j1ma.RaisingStackChan.Entity;
@@ -10,6 +11,14 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
     public sealed class NullStackChanLink : IStackChanLink
     {
         public bool IsConnected => false;
+        public StackChanConnectionState State => StackChanConnectionState.Disconnected;
+        public string LastError => null;
+
+#pragma warning disable CS0067
+        public event Action<StackChanConnectionState> StateChanged;
+#pragma warning restore CS0067
+
+        public bool TrySetEndpointFromQr(string payload) => false;
 
         public UniTask ConnectAsync(CancellationToken ct) => UniTask.CompletedTask;
 

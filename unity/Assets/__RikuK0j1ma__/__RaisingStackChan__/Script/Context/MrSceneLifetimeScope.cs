@@ -20,6 +20,9 @@ namespace RikuK0j1ma.RaisingStackChan.Context
         {
             builder.RegisterInstance(eatConfig);
 
+            // TODO(#8): switch to WebSocketStackChanLink (Infrastructure) once the QR flow (calibration
+            // use case) calls TrySetEndpointFromQr + ConnectAsync. Until then the endpoint is unknown,
+            // so the real link would only retry mDNS/last-endpoint; keep Null to run without a StackChan.
             builder.Register<NullStackChanLink>(Lifetime.Singleton).As<IStackChanLink>();
             builder.Register<NullStackChanPoseProvider>(Lifetime.Singleton).As<IStackChanPoseProvider>();
             builder.Register<NullSphereSpawner>(Lifetime.Singleton).As<ISphereSpawner>();
