@@ -25,6 +25,9 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.Register<NullSphereSpawner>(Lifetime.Singleton).As<ISphereSpawner>();
 
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
+
+            // Development-only overrides (DebugTools) hook in here.
+            MrSceneExtension.Invoke(builder);
         }
     }
 }
