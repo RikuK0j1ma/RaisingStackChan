@@ -1,15 +1,24 @@
+using System;
 using System.Collections.Generic;
+using RikuK0j1ma.RaisingStackChan.Entity;
 using RikuK0j1ma.RaisingStackChan.UseCase;
 using UnityEngine;
 
 namespace RikuK0j1ma.RaisingStackChan.DebugTools
 {
-    /// <summary>Spawns draggable primitive spheres (diameter 0.06 m) for editor testing.</summary>
+    /// <summary>Spawns draggable primitive spheres (same size as SphereConfig) for editor testing.</summary>
     public sealed class DebugSphereSpawner : ISphereSpawner
     {
-        private const float Diameter = 0.06f;
+        private readonly SphereConfig config;
         private readonly Dictionary<int, GameObject> spheres = new Dictionary<int, GameObject>();
         private int nextId;
+
+        public DebugSphereSpawner(SphereConfig config)
+        {
+            this.config = config;
+        }
+
+        public event Action<int> Spawned;
 
         public IReadOnlyDictionary<int, GameObject> Spheres => spheres;
 
@@ -18,10 +27,11 @@ namespace RikuK0j1ma.RaisingStackChan.DebugTools
             GameObject go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             go.name = $"DebugSphere_{nextId}";
             go.transform.position = position;
-            go.transform.localScale = Vector3.one * Diameter;
+            go.transform.localScale = Vector3.one * (config.Radius * 2f);
             go.AddComponent<DebugDraggable>();
             int id = nextId++;
             spheres[id] = go;
+            Spawned?.Invoke(id);
             return id;
         }
 
@@ -47,5 +57,8 @@ namespace RikuK0j1ma.RaisingStackChan.DebugTools
                 spheres.Remove(id);
             }
         }
+
+        // Mouse dragging is not a "hold": a dragged sphere dwelling at the mouth is eaten as usual.
+        public bool IsHeld(int id) => false;
     }
 }
