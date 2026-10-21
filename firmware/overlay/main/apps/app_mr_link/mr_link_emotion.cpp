@@ -82,7 +82,7 @@ void EmotionController::detach(Server& server)
     }
     if (_reverting) {
         _reverting = false;
-        auto& sc = stackchan::GetStackChan();
+        auto& sc = GetStackChan();
         if (sc.hasAvatar()) {
             LvglLockGuard lock;
             sc.avatar().setEmotion(Emotion::Neutral);
@@ -110,7 +110,7 @@ void EmotionController::update()
         return;
     }
 
-    auto& sc = stackchan::GetStackChan();
+    auto& sc = GetStackChan();
     if (!sc.hasAvatar()) {
         return;
     }

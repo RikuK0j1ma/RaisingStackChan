@@ -25,8 +25,8 @@ Quest の MR で、StackChan の顔の位置に球体（餌）を出し、口に
   - `apps/*.cpp` は `main/CMakeLists.txt` が自動で拾う（追加アプリはファイルを置くだけ）
 - 次のファイルは長いので全文を読まない: `main/CMakeLists.txt`（約400行、上の2点が分かっていれば不要）、`main/hal/hal_ws_avatar.cpp`、`main/hal/utils/local_network/local_network_protocol.h`。
 - 公式の LAN WebSocket（`hal/utils/local_network`、StackChan がクライアントでクラウド経由）と xiaozhi 関連は今回使わない。読まない。
-- `firmware/.work/` と `firmware/upstream/` は検索対象から外す（`Grep` / `Glob` の `path` を限定する）。`.work` には依存の clone が入っていて、結果が膨れる。
-- `build.ps1` は初回に依存を clone するので数分かかり、容量も大きい。`.work` が残っていれば 2 回目以降は速い。目的が登録の確認だけなら `-Task prepare`。
+- 作業コピー（`<ドライブ>:\rsc-fw\`）と `firmware/upstream/` は検索対象から外す（`Grep` / `Glob` の `path` を限定する）。作業コピーには依存の clone が入っていて、結果が膨れる。
+- `build.ps1` は初回に依存を clone するので数分かかり、容量も大きい。作業コピーが残っていれば 2 回目以降は速い。目的が登録の確認だけなら `-Task prepare`。
 - Unity の構成の参考は `D:\RikuKojima\PhysicalAITrainer`（特に `CLAUDE.md` と asmdef）。ファームの参考は `D:\RikuKojima\StackChan`（公式のローカル clone）。どちらも全体を読まず、必要な 1 ファイルだけ開く。
 
 ---
@@ -72,7 +72,7 @@ docs/       設計
 ## 公式ファームウェアは編集しない
 
 - `firmware/upstream` は M5Stack の公式リポジトリ（submodule）。このリポジトリのものではないので、中のファイルは編集しない。コミット固定の更新は `git -C firmware/upstream checkout <commit>` と `git add firmware/upstream` で行う。
-- 自作のコードは `firmware/overlay/` に置く。`firmware/build.ps1` が `upstream` を `firmware/.work/` に複製し、`overlay` を重ねてビルドする。
+- 自作のコードは `firmware/overlay/` に置く。`firmware/build.ps1` が `upstream` を `<ドライブ>:\rsc-fw\`（リポジトリの外。パス長対策）に複製し、`overlay` を重ねてビルドする。
 - 公式ソースに入れる変更は、`build.ps1` の「アプリ登録」の行挿入だけ。差分パッチ（`.patch`）は使わない。公式のファイルは CRLF で、環境の改行設定によって当たらなくなるため。
 - 実機への書込み（`build.ps1 -Task flash`）は工場出荷ファームを置き換える。ユーザーに確認してから行う。
 

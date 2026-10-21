@@ -5,17 +5,21 @@ StackChan 公式ファームウェアに、自作アプリ `MR LINK` を足し�
 ```
 firmware/
 ├ upstream/   公式 m5stack/StackChan（git submodule、コミット固定。編集禁止）
-├ overlay/    自作ファイル。.work/ にそのままコピーされる（main/apps/app_mr_link/ など）
-├ build.ps1   upstream を .work/ に複製 → overlay を重ねる → アプリ登録 → ビルド
-└ .work/      作業コピー（gitignore）
+├ overlay/    自作ファイル。作業コピーにそのままコピーされる（main/apps/app_mr_link/ など）
+├ build.ps1   upstream を作業コピーに複製 → overlay を重ねる → アプリ登録 → ビルド
+(<ドライブ>:\rsc-fw)  作業コピー。リポジトリの外（理由は下）
 ```
+
+## 作業コピーの場所
+
+作業コピーはリポジトリ内ではなく、リポジトリと同じドライブの直下（例 `D:\rsc-fw\`）に作る。ESP-IDF はコンパイラの引数に全 include パスを並べるため、プロジェクトのパスが長いと Windows の上限（約 32767 文字）を超えて `ninja: fatal: CreateProcess: The parameter is incorrect` で落ちる。別の場所にしたいときは環境変数 `RSC_FW_WORK` で指定する。コンポーネントのキャッシュも同じ理由で `C:\ecm` にしている（`IDF_COMPONENT_CACHE_PATH`）。
 
 ## 仕組み
 
-1. `upstream/firmware` を `.work/` に複製する。
-2. `overlay/` を `.work/` に重ねる。公式の `main/CMakeLists.txt` は `apps/*.cpp` を自動で拾うので、`overlay/main/apps/app_mr_link/` を置くだけでビルド対象になる。
+1. `upstream/firmware` を 作業コピー（`<ドライブ>:\rsc-fw\`）に複製する。
+2. `overlay/` を 作業コピーに重ねる。公式の `main/CMakeLists.txt` は `apps/*.cpp` を自動で拾うので、`overlay/main/apps/app_mr_link/` を置くだけでビルド対象になる。
 3. 公式ソースへの変更は、アプリ登録の2行だけ。`build.ps1` が改行コードを保ったまま挿入する（`apps.h` の include と `main.cpp` の `installApp`）。何度実行しても結果は同じ。
-4. 依存ライブラリは公式の `fetch_repos.py` が `.work/` に取得する。
+4. 依存ライブラリは公式の `fetch_repos.py` が 作業コピーに取得する。
 
 ## 使い方
 
@@ -24,9 +28,9 @@ ESP-IDF 5.5.x のシェル（`idf.py` が使える状態）で実行する。
 ```powershell
 git submodule update --init          # 初回のみ
 .\build.ps1                          # ビルド
-.\build.ps1 -Task prepare            # ビルドせず .work/ の準備だけ
+.\build.ps1 -Task prepare            # ビルドせず 作業コピーの準備だけ
 .\build.ps1 -Task flash -Port COM5   # 実機へ書込み（工場出荷ファームが置き換わる）
-.\build.ps1 -Clean                   # .work/ を消して最初から
+.\build.ps1 -Clean                   # 作業コピーを消して最初から
 ```
 
 ## 公式を更新するとき

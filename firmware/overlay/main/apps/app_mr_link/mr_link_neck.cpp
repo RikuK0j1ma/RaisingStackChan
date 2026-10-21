@@ -11,7 +11,7 @@ void NeckLock::engage()
     if (_engaged) {
         return;
     }
-    auto& motion = stackchan::GetStackChan().motion();
+    auto& motion = GetStackChan().motion();
     _prev_locked = motion.isModifyLocked();
     motion.setModifyLock(true);
     motion.moveWithSpeed(kYawAngle, kPitchAngle, kMoveSpeed);
@@ -23,7 +23,7 @@ void NeckLock::update()
     if (!_engaged) {
         return;
     }
-    auto& motion = stackchan::GetStackChan().motion();
+    auto& motion = GetStackChan().motion();
     if (!motion.isModifyLocked()) {
         motion.setModifyLock(true);
         motion.moveWithSpeed(kYawAngle, kPitchAngle, kMoveSpeed);
@@ -35,6 +35,6 @@ void NeckLock::release()
     if (!_engaged) {
         return;
     }
-    stackchan::GetStackChan().motion().setModifyLock(_prev_locked);
+    GetStackChan().motion().setModifyLock(_prev_locked);
     _engaged = false;
 }

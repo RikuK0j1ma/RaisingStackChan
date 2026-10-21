@@ -118,7 +118,7 @@ git submodule update --init
 
 `build.ps1` が次のことを自動でやります。
 
-1. 公式ファームウェアを `firmware/.work/` にコピーする（公式の元ファイルは触らない）
+1. 公式ファームウェアを `D:\rsc-fw\`（`firmware\build.ps1` が作る作業フォルダ。ドライブはリポジトリと同じ）にコピーする（公式の元ファイルは触らない）
 2. 自作アプリ `MR LINK`（`firmware/overlay/`）を重ねる
 3. アプリを登録する
 4. 依存ライブラリを取得する（**初回は数分〜数十分かかります**）
@@ -193,7 +193,7 @@ Project build complete.
 ESP-IDF のシェルで次を実行すると、本体のログが見られます（`COM5` は自分の番号）。
 
 ```powershell
-cd D:\RikuKojima\RaisingStackChan\firmware\.work
+cd D:\rsc-fw
 idf.py -p COM5 monitor
 ```
 
@@ -221,11 +221,11 @@ websocat "ws://<StackChanのIP>:8765/ws?token=<トークン>"
 | `upstream is empty. Run: git submodule update --init` | 手順 2-4 を実行していない。リポジトリ直下で `git submodule update --init` を実行する |
 | `anchor not found in ...` | 公式ファームウェアの更新で、アプリ登録の目印の行が変わった。`firmware/build.ps1` の修正が必要。エラー文を共有する |
 | `patches/xiaozhi-esp32.patch is not applied. Re-run with -Clean` | 依存ライブラリの取得が不完全。`.\build.ps1 -Clean` で最初からやり直す（再取得で時間がかかる） |
-| ビルドが途中で止まる／おかしい | `.\build.ps1 -Clean` で `.work/` を消して最初から再実行する |
-| `.work/sdkconfig` が古い設定のまま動く | `.work/sdkconfig` を削除するか、`-Clean` で作り直す（WebSocket の設定反映に必要） |
+| ビルドが途中で止まる／おかしい | `.\build.ps1 -Clean` で 作業フォルダ（`D:\rsc-fw\`）を消して最初から再実行する |
+| `D:\rsc-fw\sdkconfig` が古い設定のまま動く | `D:\rsc-fw\sdkconfig` を削除するか、`-Clean` で作り直す（WebSocket の設定反映に必要） |
 | COM ポートが出ない | データ通信対応ケーブルか確認／別の USB ポート／USB-Serial ドライバーをインストール／本体をダウンロードモードにする |
 | 書き込み後に起動しない | もう一度書き込む。それでも駄目なら M5Stack 公式の手順で公式ファームウェアを書き戻す |
-| 容量が足りない | `firmware/.work/` と ESP-IDF は大きい。不要ファイルを消して空きを作る |
+| 容量が足りない | `D:\rsc-fw\` と ESP-IDF は大きい。不要ファイルを消して空きを作る |
 
 ---
 
@@ -237,7 +237,7 @@ websocat "ws://<StackChanのIP>:8765/ws?token=<トークン>"
 
 ### 2 回目以降のビルド
 
-`.work/` が残っていれば、依存ライブラリを取得し直さないので速くなります。
+`D:\rsc-fw\` が残っていれば、依存ライブラリを取得し直さないので速くなります。
 
 ```powershell
 cd D:\RikuKojima\RaisingStackChan\firmware

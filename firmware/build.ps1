@@ -1,11 +1,11 @@
 # Builds the StackChan firmware with our app (overlay) added.
-# upstream/ (git submodule) is never modified: it is copied to .work/ first.
+# upstream/ (git submodule) is never modified: it is copied to the working dir (<drive>:\rsc-fw) first.
 #
-#   .\build.ps1                  copy upstream -> .work, add overlay, register the app, idf.py build
+#   .\build.ps1                  copy upstream -> rsc-fw, add overlay, register the app, idf.py build
 #   .\build.ps1 -Task prepare    do everything except idf.py build
 #   .\build.ps1 -Task flash -Port COM5
 #                                idf.py -p COM5 flash (writes to the device)
-#   .\build.ps1 -Clean           delete .work first (re-fetches dependencies)
+#   .\build.ps1 -Clean           delete the working dir first (re-fetches dependencies)
 #
 # Requires an ESP-IDF 5.5.x shell (idf.py on PATH), python and git.
 
@@ -18,9 +18,17 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# The component manager cache defaults to a deep path under %LOCALAPPDATA%. Some components (e.g. esp_video)
+# contain very long file names, so extraction fails with FileNotFoundError beyond Windows' 260 char limit.
+# Use a short cache path unless the user already set one.
+if (-not $env:IDF_COMPONENT_CACHE_PATH) { $env:IDF_COMPONENT_CACHE_PATH = 'C:\ecm' }
+
 $upstream = Join-Path $PSScriptRoot 'upstream\firmware'
 $overlay  = Join-Path $PSScriptRoot 'overlay'
-$work     = Join-Path $PSScriptRoot '.work'
+# The working copy lives at the drive root (e.g. D:\rsc-fw), not in the repo: ESP-IDF puts every include path
+# on the compiler command line, and a long project path pushes it over Windows' 32767 char limit
+# ("ninja: fatal: CreateProcess: The parameter is incorrect"). Override with $env:RSC_FW_WORK.
+$work     = if ($env:RSC_FW_WORK) { $env:RSC_FW_WORK } else { (Split-Path $PSScriptRoot -Qualifier) + '\rsc-fw' }
 
 if (-not (Test-Path (Join-Path $upstream 'CMakeLists.txt'))) {
     throw 'upstream is empty. Run: git submodule update --init'
@@ -50,7 +58,7 @@ function Add-LineAfter([string]$path, [string]$anchor, [string]$line) {
 
 New-Item -ItemType Directory -Force $work | Out-Null
 
-# 1. upstream -> .work (keep fetched dependencies and build output between runs)
+# 1. upstream -> rsc-fw (keep fetched dependencies and build output between runs)
 Copy-Tree $upstream @('build', 'components', 'xiaozhi-esp32')
 
 # 2. our app
@@ -67,7 +75,7 @@ Add-LineAfter (Join-Path $work 'main\CMakeLists.txt') 'esp_http_client' 'esp_htt
 Add-LineAfter (Join-Path $work 'main\CMakeLists.txt') 'esp_http_server' 'mdns'
 Add-LineAfter (Join-Path $work 'main\idf_component.yml') 'espressif/led_strip:' 'espressif/mdns: ^1.4.0'
 
-# 4. dependencies (cloned into .work by upstream's own script)
+# 4. dependencies (cloned into the working dir by upstream's own script)
 # On Windows git converts clones to CRLF, which breaks upstream's patch for xiaozhi-esp32
 # (fetch_repos.py then prints "skipped" and still exits 0). Clone with autocrlf off and keep patches LF.
 Get-ChildItem (Join-Path $work 'patches') -Filter *.patch | ForEach-Object {
