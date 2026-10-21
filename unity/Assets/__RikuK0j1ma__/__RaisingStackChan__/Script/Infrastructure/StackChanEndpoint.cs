@@ -6,7 +6,7 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
     /// <summary>Where the StackChan WebSocket server is. Pure logic (no Unity API).</summary>
     public readonly struct StackChanEndpoint : IEquatable<StackChanEndpoint>
     {
-        /// <summary>mDNS host name advertised by MR LINK.</summary>
+        /// <summary>mDNS host name advertised by MOGUMOGU.</summary>
         public const string MdnsHost = "stackchan.local";
 
         /// <summary>Fallback port when none is known. Must match the firmware (#3); unverified.</summary>

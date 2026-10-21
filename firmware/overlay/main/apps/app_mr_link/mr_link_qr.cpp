@@ -12,7 +12,7 @@ namespace mr_link {
 
 using smooth_ui_toolkit::lvgl_cpp::Qrcode;
 
-static const std::string _tag = "MR LINK/qr";
+static const std::string _tag = "MOGUMOGU/qr";
 
 // 320x240 screen. The white box keeps a quiet zone around the QR (needed for detection on a dark face).
 static constexpr int kBoxSize = 204;
@@ -131,7 +131,7 @@ void Qr::build()
         lv_label_set_text(label,
                           "Wi-Fi is not connected.\n"
                           "Set up Wi-Fi with the StackChan World app\n"
-                          "(Bluetooth), then open MR LINK again.");
+                          "(Bluetooth), then open MOGUMOGU again.");
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
         return;
     }

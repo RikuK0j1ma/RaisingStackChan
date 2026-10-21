@@ -23,7 +23,7 @@ namespace RikuK0j1ma.RaisingStackChan.Controller
             ISphereSpawner spawner,
             ISphereInteraction interaction,
             SphereConfig config,
-            IEnumerable<IHandInputSource> sources)
+            IReadOnlyList<IHandInputSource> sources)
         {
             this.spawner = spawner;
             this.interaction = interaction;

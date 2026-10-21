@@ -18,7 +18,7 @@ static mr_link::Qr _qr;
 
 AppMrLink::AppMrLink()
 {
-    setAppInfo().name = "MR LINK";
+    setAppInfo().name = "MOGUMOGU";
 }
 
 void AppMrLink::onCreate()
@@ -41,7 +41,7 @@ void AppMrLink::onOpen()
     _emotion.attach(server);
     // Re-calibration: Quest asks for the QR again
     _handler_ids.push_back(server.addMessageHandler("showQr", [](const ArduinoJson::JsonDocument&) {
-        mclog::tagInfo("MR LINK", "showQr");
+        mclog::tagInfo("MOGUMOGU", "showQr");
         _qr.show();
     }));
     // Quest connected: the QR is no longer needed, back to the face

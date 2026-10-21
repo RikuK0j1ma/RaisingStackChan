@@ -9,7 +9,7 @@ using VContainer.Unity;
 namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
 {
     /// <summary>
-    /// Detects the QR code shown by StackChan (MR LINK) through MRUK trackables and exposes it as the
+    /// Detects the QR code shown by StackChan (MOGUMOGU) through MRUK trackables and exposes it as the
     /// face pose. QR center = face center; the mouth is EatConfig.MouthLocalOffset in the face space.
     /// The QR payload (ws://ip:port/ws?token=...) is handed to IStackChanLink.TrySetEndpointFromQr;
     /// QR codes that are not a StackChan endpoint are ignored.

@@ -6,7 +6,7 @@
 namespace mr_link {
 
 /**
- * @brief Keeps the neck still and facing front while MR LINK runs.
+ * @brief Keeps the neck still and facing front while MOGUMOGU runs.
  *
  * The Quest app places the sphere relative to the face position it got from the QR, so the head must
  * not move. IdleMotionModifier and HeadPetModifier skip their motion while Motion::isModifyLocked()
