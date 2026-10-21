@@ -10,7 +10,7 @@ using VContainer.Unity;
 namespace RikuK0j1ma.RaisingStackChan.Editor
 {
     /// <summary>
-    /// One-click generation of RootLTS prefab, EatConfig asset, Boot / MR scenes,
+    /// One-click generation of RootLTS prefab, EatConfig asset, MR scene,
     /// the Build Settings entries and the VContainerSettings link.
     /// Menu: RaisingStackChan/Setup DI Scenes
     /// </summary>
@@ -19,7 +19,6 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
         private const string Root = "Assets/__RikuK0j1ma__/__RaisingStackChan__";
         private const string PrefabPath = Root + "/Prefab/RootLTS.prefab";
         private const string ConfigPath = Root + "/Data/EatConfig.asset";
-        private const string BootScenePath = Root + "/Scene/Boot.unity";
         private const string MrScenePath = Root + "/Scene/MR.unity";
 
         [MenuItem("RaisingStackChan/Setup DI Scenes")]
@@ -28,12 +27,11 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
             var config = CreateConfig();
             var rootPrefab = CreateRootPrefab();
             LinkVContainerSettings(rootPrefab);
-            CreateBootScene();
             CreateMrScene(config);
             ApplyMetaProjectConfig();
             RegisterBuildScenes();
             AssetDatabase.SaveAssets();
-            Debug.Log("[SceneSetupMenu] Done. Open Boot scene and press Play.");
+            Debug.Log("[SceneSetupMenu] Done. Open MR scene and press Play.");
         }
 
         private static EatConfig CreateConfig()
@@ -77,13 +75,6 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
             prop.objectReferenceValue = rootPrefab.GetComponent<RootLifetimeScope>();
             so.ApplyModifiedProperties();
             EditorUtility.SetDirty(settings);
-        }
-
-        private static void CreateBootScene()
-        {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            new GameObject("BootEntryPoint").AddComponent<BootEntryPoint>();
-            EditorSceneManager.SaveScene(scene, BootScenePath);
         }
 
         /// <summary>Production MR scene: OVRCameraRig + passthrough + MRUK (QR tracking) + MrSceneLTS.</summary>
@@ -148,7 +139,6 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
         {
             EditorBuildSettings.scenes = new[]
             {
-                new EditorBuildSettingsScene(BootScenePath, true),
                 new EditorBuildSettingsScene(MrScenePath, true),
             };
         }
