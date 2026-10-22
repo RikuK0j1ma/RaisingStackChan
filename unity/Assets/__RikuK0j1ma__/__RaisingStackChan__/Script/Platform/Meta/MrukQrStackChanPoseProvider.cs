@@ -26,6 +26,12 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         private bool confirmed;
         private bool hasPose;
         private Pose facePose;
+        private QrOutline outline;
+        private float nextScanTime;
+        private readonly List<MRUKTrackable> scan = new List<MRUKTrackable>();
+
+        // Re-scan interval: payloads can arrive after TrackableAdded, and MRUK may start after Initialize.
+        private const float ScanInterval = 0.5f;
 
         public MrukQrStackChanPoseProvider(IStackChanLink link, EatConfig eatConfig)
         {
@@ -44,6 +50,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
 
         public void Initialize()
         {
+            outline = new QrOutline();
             mruk = MRUK.Instance;
             if (mruk == null)
             {
@@ -71,11 +78,21 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             settings.TrackableAdded.RemoveListener(OnTrackableAdded);
             settings.TrackableRemoved.RemoveListener(OnTrackableRemoved);
             mruk = null;
+            outline?.Dispose();
+            outline = null;
         }
 
         public void Tick()
         {
-            if (current == null || !current.IsTracked) return;
+            if (mruk != null && Time.unscaledTime >= nextScanTime)
+            {
+                nextScanTime = Time.unscaledTime + ScanInterval;
+                ScanTrackables();
+            }
+
+            var reading = current != null && current.IsTracked;
+            outline?.Set(reading ? current : null);
+            if (!reading) return;
 
             var t = current.transform;
             facePose = new Pose(t.position, t.rotation);
@@ -111,10 +128,24 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         private void OnTrackableAdded(MRUKTrackable trackable)
         {
             if (trackable == null || trackable.TrackableType != OVRAnchor.TrackableType.QRCode) return;
+            if (trackable == current) return;
             if (!link.TrySetEndpointFromQr(trackable.MarkerPayloadString)) return;
 
             current = trackable;
             confirmed = false;
+        }
+
+        // Picks up QR codes whose payload was not readable yet when they were added, or that were
+        // found while the listener was not attached.
+        private void ScanTrackables()
+        {
+            scan.Clear();
+            mruk.GetTrackables(scan);
+            foreach (var t in scan)
+            {
+                if (t == null || !t.IsTracked || t == current) continue;
+                OnTrackableAdded(t);
+            }
         }
 
         private void OnTrackableRemoved(MRUKTrackable trackable)
