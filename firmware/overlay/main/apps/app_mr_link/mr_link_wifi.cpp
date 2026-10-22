@@ -9,7 +9,7 @@
 
 namespace mr_link {
 
-static const std::string _tag = "MR LINK/wifi";
+static const std::string _tag = "MOGUMOGU/wifi";
 
 // A saved network that does not connect in this time (moved house, wrong password) opens the config AP
 static constexpr int64_t kConnectTimeoutUs = 30 * 1000 * 1000;
