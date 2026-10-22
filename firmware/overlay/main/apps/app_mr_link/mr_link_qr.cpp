@@ -17,6 +17,9 @@ static const std::string _tag = "MR LINK/qr";
 // 320x240 screen. The white box keeps a quiet zone around the QR (needed for detection on a dark face).
 static constexpr int kBoxSize = 204;
 static constexpr int kQrSize = 176;
+// Wi-Fi setup page: three text lines on top leave less room for the QR
+static constexpr int kSetupBoxSize = 148;
+static constexpr int kSetupQrSize = 128;
 static constexpr int64_t kCheckIntervalUs = 1000 * 1000;
 
 Qr::Qr() = default;
@@ -58,6 +61,16 @@ bool Qr::isShown() const
     return _shown;
 }
 
+void Qr::setGuide(const Guide& guide)
+{
+    _guide = guide;
+}
+
+std::string Qr::viewKey() const
+{
+    return getIp() + "|" + std::to_string(static_cast<int>(_guide.mode)) + "|" + _guide.ap_ssid;
+}
+
 void Qr::show()
 {
     LvglLockGuard lock;
@@ -84,7 +97,7 @@ void Qr::update()
         return;
     }
     _last_check_us = now;
-    if (getIp() == _ip) {
+    if (viewKey() == _key) {
         return;
     }
     LvglLockGuard lock;
@@ -105,10 +118,36 @@ void Qr::destroy()
     }
 }
 
+void Qr::buildWifiSetup(lv_obj_t* label)
+{
+    // Caller holds the LVGL lock. The config AP is open, so a Wi-Fi QR joins it from the phone camera.
+    const std::string text = "Wi-Fi setup\nJoin: " + _guide.ap_ssid + "\nThen open " + _guide.ap_url;
+    lv_label_set_text(label, text.c_str());
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 4);
+
+    lv_obj_t* box = lv_obj_create(_root);
+    lv_obj_set_size(box, kSetupBoxSize, kSetupBoxSize);
+    lv_obj_align(box, LV_ALIGN_BOTTOM_MID, 0, -4);
+    lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_radius(box, 0, 0);
+    lv_obj_set_style_border_width(box, 0, 0);
+    lv_obj_set_style_pad_all(box, 0, 0);
+    lv_obj_set_style_bg_color(box, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
+
+    _qrcode = std::make_unique<Qrcode>(box);
+    _qrcode->setSize(kSetupQrSize);
+    _qrcode->setDarkColor(lv_color_hex(0x000000));
+    _qrcode->setLightColor(lv_color_hex(0xFFFFFF));
+    _qrcode->update("WIFI:T:nopass;S:" + _guide.ap_ssid + ";;");
+    _qrcode->align(LV_ALIGN_CENTER, 0, 0);
+}
+
 void Qr::build()
 {
     // Caller holds the LVGL lock.
     _ip = getIp();
+    _key = viewKey();
 
     _root = lv_obj_create(lv_screen_active());
     lv_obj_set_size(_root, lv_pct(100), lv_pct(100));
@@ -128,11 +167,19 @@ void Qr::build()
 
     if (_ip.empty()) {
         mclog::tagWarn(_tag, "no IP address, showing guidance");
-        lv_label_set_text(label,
-                          "Wi-Fi is not connected.\n"
-                          "Set up Wi-Fi with the StackChan World app\n"
-                          "(Bluetooth), then open MR LINK again.");
-        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+        switch (_guide.mode) {
+            case Guide::Mode::Config:
+                buildWifiSetup(label);
+                break;
+            case Guide::Mode::Connecting:
+                lv_label_set_text(label, "Connecting to Wi-Fi...");
+                lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+                break;
+            default:
+                lv_label_set_text(label, "Wi-Fi is not available.\nRestart StackChan and try again.");
+                lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+                break;
+        }
         return;
     }
 
