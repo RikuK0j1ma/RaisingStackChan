@@ -30,6 +30,9 @@ void AppMrLink::onOpen()
 {
     mclog::tagInfo(getAppInfo().name, "on open");
 
+    // Can take a while (config AP start); keep the LVGL lock free meanwhile
+    _wifi.start();
+
     LvglLockGuard lock;
 
     // The token lives until reboot, so a QR shown again (re-calibration) keeps the same token
@@ -51,12 +54,13 @@ void AppMrLink::onOpen()
         }
     }));
 
-    mr_link::Server::Config config;
-    config.token = token;
-    if (server.start(config)) {
-        _qr.setup(token, config.port);
-        _qr.show();
-    }
+    _config = mr_link::Server::Config{};
+    _config.token = token;
+    // The QR page shows guidance until Wi-Fi gives an address (onRunning starts the server then)
+    _qr.setup(token, _config.port);
+    updateWifiGuide();
+    _qr.show();
+    startServerIfReady();
 
     _neck.engage();
     _touch.attach(lv_screen_active());
@@ -67,8 +71,44 @@ void AppMrLink::onOpen()
     _button_quit->onClick().connect([this]() { close(); });
 }
 
+// Without Wi-Fi the TCP/IP stack is not initialized and httpd_start() aborts in socket(). Wait for an IP address.
+void AppMrLink::startServerIfReady()
+{
+    auto& server = mr_link::GetServer();
+    if (server.isRunning() || mr_link::Qr::getIp().empty()) {
+        return;
+    }
+    if (!server.start(_config)) {
+        mclog::tagError(getAppInfo().name, "server start failed");
+    }
+}
+
+void AppMrLink::updateWifiGuide()
+{
+    mr_link::Qr::Guide guide;
+    switch (_wifi.state()) {
+        case mr_link::WifiSetup::State::Config:
+            guide.mode = mr_link::Qr::Guide::Mode::Config;
+            guide.ap_ssid = _wifi.apSsid();
+            guide.ap_url = _wifi.apUrl();
+            break;
+        case mr_link::WifiSetup::State::Connecting:
+            guide.mode = mr_link::Qr::Guide::Mode::Connecting;
+            break;
+        case mr_link::WifiSetup::State::Failed:
+            guide.mode = mr_link::Qr::Guide::Mode::Failed;
+            break;
+        default:
+            break;
+    }
+    _qr.setGuide(guide);
+}
+
 void AppMrLink::onRunning()
 {
+    _wifi.update();
+    updateWifiGuide();
+    startServerIfReady();
     _qr.update();  // picks up a Wi-Fi address that arrives late
     _emotion.update();
     _neck.update();
@@ -90,6 +130,7 @@ void AppMrLink::onClose()
     _emotion.detach(server);
     _qr.hide();
     _neck.release();
+    _wifi.stop();
 
     LvglLockGuard lock;
     _touch.detach();
