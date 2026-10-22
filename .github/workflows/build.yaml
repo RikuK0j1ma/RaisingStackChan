@@ -1,0 +1,76 @@
+name: Build
+
+# Quest (Android) build of the Unity app with GameCI.
+# Needs repository secrets: UNITY_LICENSE, UNITY_EMAIL, UNITY_PASSWORD.
+# (Personal license: get the .ulf via GameCI "activation" workflow and paste its content into UNITY_LICENSE.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      development:
+        description: "Development build (Unity development player)"
+        type: boolean
+        default: true
+  pull_request:
+    paths:
+      - "unity/**"
+      - ".github/workflows/build.yaml"
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UNITY_VERSION: 6000.4.1f1
+  PROJECT_PATH: unity
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # Unity + Android SDK/NDK images are large.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.PROJECT_PATH }}/Library
+          key: Library-Android-${{ hashFiles(format('{0}/Packages/manifest.json', env.PROJECT_PATH), format('{0}/ProjectSettings/ProjectVersion.txt', env.PROJECT_PATH)) }}
+          restore-keys: Library-Android-
+
+      - name: Resolve build options
+        id: opts
+        run: |
+          dev="${{ github.event_name == 'workflow_dispatch' && inputs.development || 'true' }}"
+          if [ "$dev" = "true" ]; then
+            echo "params=-development" >> "$GITHUB_OUTPUT"
+          else
+            echo "params=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: Android
+          androidExportType: apk
+          buildName: RaisingStackChan
+          customParameters: ${{ steps.opts.outputs.params }}
+          allowDirtyBuild: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RaisingStackChan-Android-${{ github.sha }}
+          path: build/Android
+          if-no-files-found: error
