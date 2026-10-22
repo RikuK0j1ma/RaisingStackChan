@@ -49,6 +49,7 @@ void WifiSetup::beginStation()
     mclog::tagInfo(_tag, "connecting to a saved network");
     _state = State::Connecting;
     _station_started_us = esp_timer_get_time();
+    _scanner.stop();
     WifiManager::GetInstance().StartStation();
 }
 
@@ -59,6 +60,16 @@ void WifiSetup::beginConfig()
     wifi.StartConfigAp();  // stops the station if it is active
     _started_config = true;
     _state = wifi.IsConfigMode() ? State::Config : State::Failed;
+    if (_state == State::Config) {
+        _scanner.start();  // a Wi-Fi share QR shown to the camera is an alternative to the web page
+    }
+}
+
+void WifiSetup::joinScanned(const WifiCredentials& creds)
+{
+    mclog::tagInfo(_tag, "joining the network from the QR: {}", creds.ssid);
+    SsidManager::GetInstance().AddSsid(creds.ssid, creds.password);
+    beginStation();  // stops the config AP and the scanner
 }
 
 void WifiSetup::update()
@@ -75,7 +86,12 @@ void WifiSetup::update()
                 beginConfig();
             }
             break;
-        case State::Config:
+        case State::Config: {
+            WifiCredentials scanned;
+            if (_scanner.poll(scanned)) {
+                joinScanned(scanned);
+                break;
+            }
             // The web page ends the config mode once the user saved a network
             if (!wifi.IsConfigMode()) {
                 if (hasSavedNetwork()) {
@@ -85,6 +101,7 @@ void WifiSetup::update()
                 }
             }
             break;
+        }
         case State::Connected:
             if (!wifi.IsConnected()) {
                 // Lost the network. The station retries by itself; show the connecting page meanwhile.
@@ -100,6 +117,7 @@ void WifiSetup::update()
 
 void WifiSetup::stop()
 {
+    _scanner.stop();
     auto& wifi = WifiManager::GetInstance();
     if (_started_config && wifi.IsInitialized() && wifi.IsConfigMode()) {
         wifi.StopConfigAp();
