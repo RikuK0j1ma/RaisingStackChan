@@ -15,7 +15,7 @@ using stackchan::avatar::Emotion;
 static constexpr int kDefaultDurationMs = 3000;
 static constexpr int kMaxDurationMs = 60000;
 static constexpr int kConnectedDurationMs = 1500;
-static const char* _tag = "MR LINK";
+static const char* _tag = "MOGUMOGU";
 
 static bool parseEmotion(const char* value, Emotion& out)
 {

@@ -68,7 +68,7 @@ Copy-Tree $overlay
 Add-LineAfter (Join-Path $work 'main\apps\apps.h') '#include "app_dance/app_dance.h"' '#include "app_mr_link/app_mr_link.h"'
 Add-LineAfter (Join-Path $work 'main\main.cpp') 'GetMooncake().installApp(std::make_unique<AppDance>());' 'GetMooncake().installApp(std::make_unique<AppMrLink>());'
 
-# 3b. components used by MR LINK (WebSocket server + mDNS).
+# 3b. components used by MOGUMOGU (WebSocket server + mDNS).
 # esp_http_server is part of ESP-IDF. mdns is a managed component, so it is also declared in idf_component.yml.
 # CONFIG_HTTPD_WS_SUPPORT=y comes from overlay/sdkconfig.defaults.local (picked up by upstream CMakeLists).
 Add-LineAfter (Join-Path $work 'main\CMakeLists.txt') 'esp_http_client' 'esp_http_server'

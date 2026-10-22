@@ -14,7 +14,7 @@
 
 namespace mr_link {
 
-static const std::string _tag = "MR LINK/ws";
+static const std::string _tag = "MOGUMOGU/ws";
 
 static constexpr const char* kWsPath = "/ws";
 static constexpr size_t kMaxFrameSize = 1024;  // messages are tiny; refuse anything bigger
@@ -355,7 +355,7 @@ void Server::startMdns()
         return;
     }
     mdns_hostname_set(_config.hostname.c_str());
-    mdns_instance_name_set("StackChan MR LINK");
+    mdns_instance_name_set("StackChan MOGUMOGU");
     mdns_txt_item_t txt[] = {{"proto", "1"}};
     err = mdns_service_add(nullptr, "_stackchan", "_tcp", _config.port, txt, 1);
     if (err != ESP_OK) {

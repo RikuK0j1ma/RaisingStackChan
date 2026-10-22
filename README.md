@@ -8,7 +8,7 @@ Quest のパススルー映像の中で、StackChan のいる場所に球体（�
 
 ```
 unity/       Quest 用 MR アプリ（Unity）
-firmware/    StackChan ファームウェア（公式 + 自作アプリ MR LINK）
+firmware/    StackChan ファームウェア（公式 + 自作アプリ MOGUMOGU）
 docs/        設計
 ```
 

@@ -11,7 +11,7 @@
 #include <vector>
 
 /**
- * @brief MR Link: shows a QR code for the Quest app and reacts to its commands
+ * @brief MOGUMOGU: shows a QR code for the Quest app and reacts to its commands
  *
  */
 class AppMrLink : public mooncake::AppAbility {

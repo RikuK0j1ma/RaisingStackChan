@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using RikuK0j1ma.RaisingStackChan.Controller;
 using RikuK0j1ma.RaisingStackChan.Entity;
 using RikuK0j1ma.RaisingStackChan.Infrastructure;
@@ -42,8 +43,12 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             // devices are simply untracked, so no sphere appears. NullSphereSpawner stays for tests.
             builder.RegisterInstance(sphereConfig != null ? sphereConfig : ScriptableObject.CreateInstance<SphereConfig>());
             builder.Register<SphereSpawner>(Lifetime.Singleton).As<ISphereSpawner>().As<ISphereInteraction>();
-            builder.RegisterInstance<IHandInputSource>(new XrControllerInputSource(XRNode.LeftHand));
-            builder.RegisterInstance<IHandInputSource>(new XrControllerInputSource(XRNode.RightHand));
+            // One list instance: VContainer rejects two registrations with the same implementation type.
+            builder.RegisterInstance<IReadOnlyList<IHandInputSource>>(new IHandInputSource[]
+            {
+                new XrControllerInputSource(XRNode.LeftHand),
+                new XrControllerInputSource(XRNode.RightHand),
+            });
             builder.RegisterEntryPoint<SphereGrabController>();
 
             builder.Register<SuckInEatEffect>(Lifetime.Singleton).As<IEatEffect>(); // takes SphereConfig

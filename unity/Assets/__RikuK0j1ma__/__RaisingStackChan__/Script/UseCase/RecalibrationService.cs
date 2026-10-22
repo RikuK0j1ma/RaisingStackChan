@@ -29,7 +29,7 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
             RecalibrationRequested?.Invoke();
             guide.Flow.Restart();
 
-            // Not connected: StackChan shows the QR by itself after a restart / when MR LINK opens.
+            // Not connected: StackChan shows the QR by itself after a restart / when MOGUMOGU opens.
             if (!link.IsConnected) return;
 
             try { await link.SendShowQrAsync(ct); }

@@ -6,11 +6,11 @@
 
 ## これは何か・今どこまで進んでいるか
 
-Quest の MR で、StackChan の顔の位置に球体（餌）を出し、口に近づけると消えて StackChan が喜び顔になるアプリ。StackChan は M5Stack 公式ファームに自作アプリ `MR LINK` を足して使い、Quest（Unity）とは Wi-Fi の WebSocket で通信する。
+Quest の MR で、StackChan の顔の位置に球体（餌）を出し、口に近づけると消えて StackChan が喜び顔になるアプリ。StackChan は M5Stack 公式ファームに自作アプリ `MOGUMOGU` を足して使い、Quest（Unity）とは Wi-Fi の WebSocket で通信する。
 
 - 設計とユーザー体験は `docs/design.md`。作業を始める前にここと該当 Issue だけ読めば足りる。
 - 残作業は GitHub の Issue #1〜#15（`gh issue list`）。依存関係は各 Issue の「依存」欄にある。
-- 現状は骨組みだけ（PR #16）。Unity のコードも、`MR LINK` の QR・WebSocket も未実装。Unity は一度もエディタで開いていない。`idf.py build` も未実行。
+- 現状は骨組みだけ（PR #16）。Unity のコードも、`MOGUMOGU` の QR・WebSocket も未実装。Unity は一度もエディタで開いていない。`idf.py build` も未実行。
 
 ---
 

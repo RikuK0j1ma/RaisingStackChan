@@ -12,7 +12,7 @@ namespace mr_link {
 
 using smooth_ui_toolkit::lvgl_cpp::Qrcode;
 
-static const std::string _tag = "MR LINK/qr";
+static const std::string _tag = "MOGUMOGU/qr";
 
 // 320x240 screen. The white box keeps a quiet zone around the QR (needed for detection on a dark face).
 static constexpr int kBoxSize = 204;

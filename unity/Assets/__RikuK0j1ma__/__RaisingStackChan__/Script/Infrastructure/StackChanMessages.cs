@@ -3,7 +3,7 @@ using RikuK0j1ma.RaisingStackChan.Entity;
 
 namespace RikuK0j1ma.RaisingStackChan.Infrastructure
 {
-    /// <summary>JSON text messages of the MR LINK protocol (docs/design.md). Pure logic.</summary>
+    /// <summary>JSON text messages of the MOGUMOGU protocol (docs/design.md). Pure logic.</summary>
     public static class StackChanMessages
     {
         public static string Emotion(StackChanEmotion emotion, int durationMs)

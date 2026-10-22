@@ -7,7 +7,7 @@ Quest の MR（パススルー）で、StackChan のいる場所に球体（餌�
 ## 全体構成
 
 ```
-[StackChan]  アプリ MR LINK（公式ファームに追加）
+[StackChan]  アプリ MOGUMOGU（公式ファームに追加）
   ├ QR 表示（接続情報 + 位置マーカー）
   ├ WebSocket サーバー + mDNS
   └ 受信 → emotion → Avatar::setEmotion(Happy) → 数秒後に Neutral
@@ -31,7 +31,7 @@ ws://<ip>:8765/ws?token=<token>
 - `<ip>` は StackChan の Wi-Fi（STA）の IPv4。`<token>` は 16 桁の 16 進文字列。全体で約 55 文字（QR バージョン 4 前後）。
 - 当初案の `rsc://<ip>:<port>?t=<token>` は採らない。URL をそのまま接続に使えるので、変換が要らない。
 - 画面（320x240）に、黒地に白の QR（176px、周囲に白い余白）を中央寄せで全画面表示する。上部に案内テキスト（英語。標準フォントに日本語の字が無いため「Questで見てね」は出せない）。
-- Wi-Fi が未接続（IP が無い）ときは QR の代わりに案内（BLE で StackChan World アプリから Wi-Fi を設定して MR LINK を開き直す）を出す。IP が後から取れたら自動で QR に切り替わる。
+- Wi-Fi が未接続（IP が無い）ときは QR の代わりに案内（BLE で StackChan World アプリから Wi-Fi を設定して MOGUMOGU を開き直す）を出す。IP が後から取れたら自動で QR に切り替わる。
 - Quest が接続（認証成功）したら QR を消して顔に戻る。Quest からの `showQr` で再表示する。実装は `mr_link_qr.{h,cpp}`。
 
 ## 通信
@@ -42,8 +42,8 @@ StackChan が WebSocket サーバー、Quest がクライアント。素の JSON
 
 - URL: `ws://<host>:8765/ws?token=<token>`。`<host>` は QR で受け取った IP、または mDNS の `stackchan.local`。
 - トークンは StackChan の起動ごとに生成する 16 桁の 16 進文字列。QR で Quest へ渡す。NVS には永続化しない。
-  - 再起動するとトークンが変わるので、Quest が保存した前回の URL では接続できない（認証で切断される）。この場合は QR を読み直す。MR LINK を開くと必ず QR が出るので、それが再接続の手順になる（再キャリブと同じ操作）。
-  - 同じ起動中は、MR LINK を閉じて開き直してもトークンは同じ。Quest が落ちて戻っただけなら、保存した URL でそのまま再接続できる。
+  - 再起動するとトークンが変わるので、Quest が保存した前回の URL では接続できない（認証で切断される）。この場合は QR を読み直す。MOGUMOGU を開くと必ず QR が出るので、それが再接続の手順になる（再キャリブと同じ操作）。
+  - 同じ起動中は、MOGUMOGU を閉じて開き直してもトークンは同じ。Quest が落ちて戻っただけなら、保存した URL でそのまま再接続できる。
   - Quest 側は、保存済み URL での接続が認証で切断されたら「QR を読んでください」へ戻すこと。
 - トークンが誤りなら、接続直後に StackChan が切断する（WebSocket のハンドシェイク完了後に検証するため、HTTP エラーではなく切断で知る）。切断後の `message` は一切処理しない。
 - 接続は 1 クライアントのみ。認証済みの新しい接続が来たら、古い接続を切って置き換える（Quest が落ちて半開きになった接続で塞がらないため）。
@@ -86,7 +86,7 @@ StackChan → Quest:
 ### 初回セットアップ
 
 1. StackChan の電源を入れる。Wi-Fi が未設定なら、公式の BLE 設定（StackChan World アプリ）で設定する。Quest と同じ Wi-Fi にする。
-2. StackChan のランチャーで MR LINK を開く。顔の代わりに QR と案内を表示する。
+2. StackChan のランチャーで MOGUMOGU を開く。顔の代わりに QR と案内を表示する。
 3. Quest でアプリを起動する。パススルーが表示される。初回だけ権限ダイアログ（カメラ、空間データ、アンカー）が出る。
 4. 「StackChan の顔を見てください」の案内が出る。QR を見る。
 5. QR を検出すると、顔の位置にリングが出て WebSocket が接続される。StackChan は QR を消して顔に戻り、一瞬ニコッとして接続完了を知らせる。位置は Spatial Anchor に保存する。
