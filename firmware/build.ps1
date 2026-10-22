@@ -73,6 +73,8 @@ Add-LineAfter (Join-Path $work 'main\main.cpp') 'GetMooncake().installApp(std::m
 # CONFIG_HTTPD_WS_SUPPORT=y comes from overlay/sdkconfig.defaults.local (picked up by upstream CMakeLists).
 Add-LineAfter (Join-Path $work 'main\CMakeLists.txt') 'esp_http_client' 'esp_http_server'
 Add-LineAfter (Join-Path $work 'main\CMakeLists.txt') 'esp_http_server' 'mdns'
+# quirc (Wi-Fi QR scan) is vendored in overlay/components/quirc, so it needs no idf_component.yml entry.
+Add-LineAfter (Join-Path $work 'main\CMakeLists.txt') 'mdns' 'quirc'
 Add-LineAfter (Join-Path $work 'main\idf_component.yml') 'espressif/led_strip:' 'espressif/mdns: ^1.4.0'
 
 # 4. dependencies (cloned into the working dir by upstream's own script)

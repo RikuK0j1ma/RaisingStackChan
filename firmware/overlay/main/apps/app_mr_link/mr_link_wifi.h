@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: MIT
  */
 #pragma once
+#include "mr_link_wifi_scan.h"
 #include <cstdint>
 #include <string>
 
@@ -15,6 +16,8 @@ namespace mr_link {
  * - None saved, or the connection times out: start the configuration AP (open, "MOGUMOGU-XXXX").
  *   The phone joins it and enters SSID / password on the web page at the AP address. The page saves
  *   them to NVS and ends the config mode, then this class connects as a station.
+ * - While the config AP is up the camera also looks for a Wi-Fi share QR (the one phones show for
+ *   "share Wi-Fi"). A QR that is read is saved the same way and the station connects right away.
  *
  * Call start() on open, update() from the app loop (cheap) and stop() on close.
  */
@@ -40,10 +43,12 @@ public:
 private:
     void beginStation();
     void beginConfig();
+    void joinScanned(const WifiCredentials& creds);
 
     State _state = State::Idle;
     int64_t _station_started_us = 0;
     bool _started_config = false;
+    WifiQrScanner _scanner;
 };
 
 }  // namespace mr_link

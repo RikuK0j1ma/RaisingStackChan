@@ -121,7 +121,8 @@ void Qr::destroy()
 void Qr::buildWifiSetup(lv_obj_t* label)
 {
     // Caller holds the LVGL lock. The config AP is open, so a Wi-Fi QR joins it from the phone camera.
-    const std::string text = "Wi-Fi setup\nJoin: " + _guide.ap_ssid + "\nThen open " + _guide.ap_url;
+    const std::string text = "Wi-Fi setup\nJoin: " + _guide.ap_ssid + "\nThen open " + _guide.ap_url +
+                             "\nOr show a Wi-Fi QR to my camera";
     lv_label_set_text(label, text.c_str());
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 4);
 
