@@ -4,6 +4,7 @@ using Meta.XR.MRUtilityKit;
 using RikuK0j1ma.RaisingStackChan.Entity;
 using RikuK0j1ma.RaisingStackChan.UseCase;
 using UnityEngine;
+using UnityEngine.Android;
 using VContainer.Unity;
 
 namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
@@ -16,12 +17,17 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
     /// Needs an MRUK component and OVRCameraRig in the scene and the Scene permission.
     /// The pose is kept after the QR disappears (StackChan hides it once connected).
     /// </summary>
-    public sealed class MrukQrStackChanPoseProvider : IStackChanPoseProvider, IInitializable, ITickable, IDisposable
+    public sealed class MrukQrStackChanPoseProvider : IStackChanPoseProvider, IDiagnosticsSource, IInitializable, ITickable, IDisposable
     {
         private readonly IStackChanLink link;
         private readonly EatConfig eatConfig;
 
         private MRUK mruk;
+        private bool disposed;
+        private int trackableCount;
+        private int qrCount;
+        private string lastPayload;
+        private string lastResult = "no QR seen yet";
         private MRUKTrackable current;
         private bool confirmed;
         private bool hasPose;
@@ -42,14 +48,16 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         /// <summary>True when MRUK exists in the scene and QR tracking was requested.</summary>
         public bool IsActive => mruk != null;
 
-        public void Initialize()
+        public void Initialize() => TrySetUp();
+
+        // VContainer runs Initialize inside LifetimeScope.Awake, which can be before MRUK.Awake sets
+        // MRUK.Instance (script order is undefined). So retry from Tick until MRUK is there.
+        private void TrySetUp()
         {
-            mruk = MRUK.Instance;
-            if (mruk == null)
-            {
-                Debug.LogWarning("MRUK is not in the scene; QR detection is disabled.");
-                return;
-            }
+            if (disposed || mruk != null) return;
+            var instance = MRUK.Instance;
+            if (instance == null) return;
+            mruk = instance;
 
             var settings = mruk.SceneSettings;
             var config = settings.TrackerConfiguration;
@@ -62,10 +70,12 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             var existing = new List<MRUKTrackable>();
             mruk.GetTrackables(existing);
             foreach (var t in existing) OnTrackableAdded(t);
+            Debug.Log($"[QR] Requested QR tracking. Existing trackables: {existing.Count}");
         }
 
         public void Dispose()
         {
+            disposed = true;
             if (mruk == null) return;
             var settings = mruk.SceneSettings;
             settings.TrackableAdded.RemoveListener(OnTrackableAdded);
@@ -75,6 +85,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
 
         public void Tick()
         {
+            if (mruk == null) TrySetUp();
             if (current == null || !current.IsTracked) return;
 
             var t = current.transform;
@@ -108,11 +119,38 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             return hasPose;
         }
 
+        public string DescribeStatus()
+        {
+            if (mruk == null) return "QR: waiting for MRUK (MRUK.Instance is null)";
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Scene permission: {(Permission.HasUserAuthorizedPermission(OVRPermissionsRequester.ScenePermission) ? "granted" : "NOT granted")}");
+            sb.AppendLine($"QR tracking supported: {mruk.QRCodeTrackingSupported}");
+            sb.AppendLine($"QR tracking: requested={mruk.SceneSettings.TrackerConfiguration.QRCodeTrackingEnabled} granted={mruk.TrackerConfiguration.QRCodeTrackingEnabled}");
+            sb.AppendLine($"Trackables seen: {trackableCount} (QR: {qrCount})");
+            sb.AppendLine($"Last QR: {(lastPayload ?? "-")}");
+            sb.AppendLine($"Last QR result: {lastResult}");
+            sb.AppendLine($"Tracking now: {(current != null && current.IsTracked ? "yes" : "no")}");
+            return sb.ToString();
+        }
+
         private void OnTrackableAdded(MRUKTrackable trackable)
         {
-            if (trackable == null || trackable.TrackableType != OVRAnchor.TrackableType.QRCode) return;
-            if (!link.TrySetEndpointFromQr(trackable.MarkerPayloadString)) return;
+            if (trackable == null) return;
+            trackableCount++;
+            if (trackable.TrackableType != OVRAnchor.TrackableType.QRCode) return;
+            qrCount++;
+            var payload = trackable.MarkerPayloadString;
+            lastPayload = payload;
+            if (!link.TrySetEndpointFromQr(payload))
+            {
+                lastResult = "ignored (not a StackChan endpoint)";
+                Debug.Log($"[QR] Ignored a QR that is not a StackChan endpoint: \"{payload}\"");
+                return;
+            }
 
+            lastResult = "accepted";
+            Debug.Log($"[QR] StackChan QR accepted: \"{payload}\"");
             current = trackable;
             confirmed = false;
         }

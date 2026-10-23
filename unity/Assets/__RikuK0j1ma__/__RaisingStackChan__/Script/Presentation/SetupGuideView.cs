@@ -140,7 +140,9 @@ namespace RikuK0j1ma.RaisingStackChan.Presentation
             ind.transform.localPosition = new Vector3(-0.28f, -0.3f, 0f);
             ind.transform.localScale = Vector3.one * 0.03f;
             indicator = ind.GetComponent<Renderer>();
-            indicator.material = new Material(Shader.Find("Unlit/Color"));
+            // Sprites/Default is in Always Included Shaders; Unlit/Color is stripped from player builds,
+            // which made Shader.Find return null and Build() throw, so no guide was drawn on device.
+            indicator.material = new Material(Shader.Find("Sprites/Default"));
 
             var label = new GameObject("IndicatorLabel").transform;
             label.SetParent(panel, false);

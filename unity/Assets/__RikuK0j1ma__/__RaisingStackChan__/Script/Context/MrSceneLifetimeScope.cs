@@ -29,6 +29,8 @@ namespace RikuK0j1ma.RaisingStackChan.Context
 
             // Real WebSocket link on device only. CalibrationEntryPoint feeds it the QR endpoint and connects.
 #if UNITY_ANDROID && !UNITY_EDITOR
+            // VContainer picks the constructor with the most parameters, so the store must be registered.
+            builder.Register<PlayerPrefsEndpointStore>(Lifetime.Singleton);
             builder.Register<WebSocketStackChanLink>(Lifetime.Singleton).As<IStackChanLink>();
 #else
             builder.Register<NullStackChanLink>(Lifetime.Singleton).As<IStackChanLink>();
@@ -69,6 +71,7 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.Register<SetupGuideUseCase>(Lifetime.Singleton);
             builder.Register<RecalibrationService>(Lifetime.Singleton);
             builder.RegisterEntryPoint<SetupGuideEntryPoint>();
+            builder.RegisterEntryPoint<DiagnosticsEntryPoint>();
 
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
 
