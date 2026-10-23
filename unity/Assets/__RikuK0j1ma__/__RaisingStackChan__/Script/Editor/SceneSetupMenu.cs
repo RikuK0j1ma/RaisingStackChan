@@ -132,6 +132,9 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
             config.insightPassthroughSupport = OVRProjectConfig.FeatureSupport.Required;
             config.sceneSupport = OVRProjectConfig.FeatureSupport.Required;
             config.anchorSupport = OVRProjectConfig.AnchorSupport.Enabled;
+            // Same as the MRUK QRCodeDetection sample (adds horizonos.permission.HEADSET_CAMERA and the experimental flag).
+            config.experimentalFeaturesEnabled = true;
+            config.isPassthroughCameraAccessEnabled = true;
             OVRProjectConfig.CommitProjectConfig(config);
         }
 
