@@ -46,6 +46,8 @@ namespace RikuK0j1ma.RaisingStackChan.Context
                 qr.FacePoseConfirmed += OnQrPose;
                 calibration.FacePoseConfirmed += qr.ApplyRestoredPose;
                 recalibration.RecalibrationRequested += OnRecalibrationRequested;
+                recalibration.QrScanStarted += OnQrScanStarted;
+                recalibration.QrScanCancelled += OnQrScanCancelled;
             }
 #endif
             var result = await calibration.StartAsync(ct);
@@ -77,9 +79,20 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             {
                 await calibration.OnFacePoseDetectedAsync(pose, cts.Token);
                 await link.ConnectAsync(cts.Token);
+                // Y-button recalibration: the new pose is fixed, so StackChan goes back to the face.
+                await recalibration.OnFacePoseConfirmedAsync(cts.Token);
             }
             catch (OperationCanceledException) { }
             catch (Exception e) { Debug.LogException(e); }
+        }
+
+        // Y button: keep the anchor, but accept the next QR as a new pose.
+        private void OnQrScanStarted() => qr.ResetConfirmation();
+
+        // Y button cancel: keep the current pose, and do not let a lingering QR trackable re-confirm and overwrite the anchor.
+        private void OnQrScanCancelled()
+        {
+            if (qr.TryGetFacePose(out var pose)) qr.ApplyRestoredPose(pose);
         }
 
         private void OnRecalibrationRequested()
@@ -97,6 +110,8 @@ namespace RikuK0j1ma.RaisingStackChan.Context
                 qr.FacePoseConfirmed -= OnQrPose;
                 calibration.FacePoseConfirmed -= qr.ApplyRestoredPose;
                 recalibration.RecalibrationRequested -= OnRecalibrationRequested;
+                recalibration.QrScanStarted -= OnQrScanStarted;
+                recalibration.QrScanCancelled -= OnQrScanCancelled;
             }
 #endif
             cts.Cancel();

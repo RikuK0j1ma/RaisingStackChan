@@ -52,6 +52,7 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
             public UniTask ConnectAsync(CancellationToken ct) { ConnectCount++; return UniTask.CompletedTask; }
             public UniTask SendEmotionAsync(StackChanEmotion emotion, int durationMs, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask SendShowQrAsync(CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask SendHideQrAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
 
         private sealed class FakeGuide : ICalibrationGuide

@@ -13,6 +13,8 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         private readonly IStackChanLink link;
         private readonly IStackChanPoseProvider pose;
 
+        private bool awaitingFreshPose;
+
         public SetupFlow Flow { get; }
 
         public SetupGuideUseCase(IStackChanLink link, IStackChanPoseProvider pose)
@@ -28,10 +30,19 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         /// <summary>Last link error for display; null when none.</summary>
         public string LastError => link.LastError;
 
+        /// <summary>
+        /// While true, the pose still held from before is not taken as a detection (recalibration via Y button).
+        /// Without this the guide would jump to Connected on the next Tick while StackChan still shows the QR.
+        /// </summary>
+        public void BeginFreshPoseWait() => awaitingFreshPose = true;
+
+        public void EndFreshPoseWait() => awaitingFreshPose = false;
+
         /// <summary>Call every frame.</summary>
         public void Tick(float deltaTime)
         {
-            if ((Flow.Phase == SetupPhase.LookAtFace || Flow.Phase == SetupPhase.Detecting)
+            if (!awaitingFreshPose
+                && (Flow.Phase == SetupPhase.LookAtFace || Flow.Phase == SetupPhase.Detecting)
                 && pose.TryGetFacePose(out _))
             {
                 Flow.ReportQrDetected();

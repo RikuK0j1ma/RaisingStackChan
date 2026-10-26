@@ -17,9 +17,26 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
             return o.ToString(Newtonsoft.Json.Formatting.None);
         }
 
+        /// <summary>Neck direction in degrees (yaw + right, pitch + up). Rounded to 0.1 to keep the message small.</summary>
+        public static string Look(float yawDeg, float pitchDeg)
+        {
+            var o = new JObject
+            {
+                ["type"] = "look",
+                ["yaw"] = System.Math.Round(yawDeg, 1),
+                ["pitch"] = System.Math.Round(pitchDeg, 1),
+            };
+            return o.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
         public static string ShowQr()
         {
             return new JObject { ["type"] = "showQr" }.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
+        public static string HideQr()
+        {
+            return new JObject { ["type"] = "hideQr" }.ToString(Newtonsoft.Json.Formatting.None);
         }
 
         /// <summary>Returns the "type" of an incoming message, or null if it is not a JSON object with one.</summary>
