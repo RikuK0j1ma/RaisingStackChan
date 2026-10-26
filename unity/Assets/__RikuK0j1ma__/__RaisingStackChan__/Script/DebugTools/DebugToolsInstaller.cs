@@ -27,6 +27,18 @@ namespace RikuK0j1ma.RaisingStackChan.DebugTools
 
         private static void Install(IContainerBuilder builder)
         {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            // On the headset the real implementations (Meta spawner with A / X input, QR pose, WebSocket link) must stay.
+            return;
+#else
+            // Editor with a headset (Link): keep the real implementations too. Overrides are for headset-less testing.
+            if (UnityEngine.XR.XRSettings.isDeviceActive) return;
+            InstallEditorOverrides(builder);
+#endif
+        }
+
+        private static void InstallEditorOverrides(IContainerBuilder builder)
+        {
             // Face object lives in the scene so it can be moved in the editor.
             GameObject face = GameObject.CreatePrimitive(PrimitiveType.Cube);
             face.name = "DebugStackChanFace";

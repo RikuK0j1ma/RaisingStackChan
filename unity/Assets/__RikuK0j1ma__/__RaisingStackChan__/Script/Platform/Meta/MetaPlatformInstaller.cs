@@ -25,5 +25,13 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
                 .AsSelf();
             return true;
         }
+
+        /// <summary>Registers the Meta SDK sphere spawner (spawn input + Interaction SDK grabbing).</summary>
+        public static void RegisterSphereSpawner(IContainerBuilder builder)
+        {
+            builder.Register<MetaSphereSpawner>(Lifetime.Singleton)
+                .As<ISphereSpawner>()
+                .As<ITickable>();
+        }
     }
 }
