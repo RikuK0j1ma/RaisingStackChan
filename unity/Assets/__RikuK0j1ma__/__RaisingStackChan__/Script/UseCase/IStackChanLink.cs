@@ -28,5 +28,8 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
 
         UniTask SendEmotionAsync(StackChanEmotion emotion, int durationMs, CancellationToken ct);
         UniTask SendShowQrAsync(CancellationToken ct);
+
+        /// <summary>Asks StackChan to hide the QR and go back to the face (hideQr). The connection stays up.</summary>
+        UniTask SendHideQrAsync(CancellationToken ct);
     }
 }

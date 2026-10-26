@@ -22,6 +22,11 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
             return new JObject { ["type"] = "showQr" }.ToString(Newtonsoft.Json.Formatting.None);
         }
 
+        public static string HideQr()
+        {
+            return new JObject { ["type"] = "hideQr" }.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
         /// <summary>Returns the "type" of an incoming message, or null if it is not a JSON object with one.</summary>
         public static string TryGetType(string json, out JObject obj)
         {

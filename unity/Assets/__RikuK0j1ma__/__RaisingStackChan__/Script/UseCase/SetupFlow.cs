@@ -89,6 +89,18 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         /// <summary>Recalibration requested (menu) or retry after a failure. Back to looking at the face.</summary>
         public void Restart() => Enter(SetupPhase.LookAtFace);
 
+        /// <summary>
+        /// The QR scan was cancelled (Y button) while the link is up: the previous pose stays valid, so go back to Connected.
+        /// Does nothing in other phases.
+        /// </summary>
+        public void CancelRecalibration()
+        {
+            if (!IsLinkConnected) return;
+            if (Phase == SetupPhase.LookAtFace || Phase == SetupPhase.Detecting
+                || (Phase == SetupPhase.Failed && IsQrFailure(Failure)))
+                Enter(SetupPhase.Connected);
+        }
+
         public void OnLinkState(StackChanConnectionState state)
         {
             // Re-applying the same state is allowed: it re-evaluates the phase (e.g. link was already up when the pose got fixed).

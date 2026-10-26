@@ -31,6 +31,12 @@ namespace RikuK0j1ma.RaisingStackChan.DebugTools
             return UniTask.CompletedTask;
         }
 
+        public UniTask SendHideQrAsync(CancellationToken ct)
+        {
+            Record("hide_qr");
+            return UniTask.CompletedTask;
+        }
+
         private void Record(string message)
         {
             LastMessage = $"[{Time.time:F1}s] {message}";

@@ -39,13 +39,18 @@ void AppMrLink::onOpen()
     static const std::string token = mr_link::Server::generateToken();
     auto& server = mr_link::GetServer();
 
-    // Log what arrives. The emotion / showQr features subscribe the same way.
+    // Log what arrives. The emotion / showQr / hideQr features subscribe the same way.
     // "emotion" messages and the Happy flash on connect are handled by EmotionController
     _emotion.attach(server);
     // Re-calibration: Quest asks for the QR again
     _handler_ids.push_back(server.addMessageHandler("showQr", [](const ArduinoJson::JsonDocument&) {
         mclog::tagInfo("MOGUMOGU", "showQr");
         _qr.show();
+    }));
+    // Y button toggle / QR read: Quest asks to go back to the face (the connection stays up)
+    _handler_ids.push_back(server.addMessageHandler("hideQr", [](const ArduinoJson::JsonDocument&) {
+        mclog::tagInfo("MOGUMOGU", "hideQr");
+        _qr.hide();
     }));
     // Quest connected: the QR is no longer needed, back to the face
     _handler_ids.push_back(server.addConnectionHandler([](bool connected) {
