@@ -44,10 +44,28 @@ public:
     /** Largest |degrees| accepted from a message. Anything beyond is dropped as garbage. */
     static constexpr float kMaxInputDeg = 360.0f;
 
-    static constexpr int kFollowSpeed = 400;               // 0-1000
-    static constexpr float kSmoothingSeconds = 0.12f;      // low-pass time constant of the target
-    static constexpr int64_t kCommandIntervalUs = 50000;   // at most 20 servo commands per second
-    static constexpr int kCommandDeadband = 3;             // 0.1 degree; smaller changes are not sent
+    /**
+     * Follow trajectory: the neck keeps its own position and velocity per axis and runs a critically damped
+     * spring toward the target at a fixed step (kStepSeconds), like Unity's SmoothDamp. It starts and stops
+     * smoothly and does not overshoot. Smaller smoothing time = faster. Yaw is faster than pitch (head turns
+     * are quicker than nods).
+     */
+    static constexpr float kStepSeconds = 0.02f;          // 50Hz, same as Servo::update
+    static constexpr float kYawSmoothSeconds = 0.14f;     // spring time constant (about the time to settle)
+    static constexpr float kPitchSmoothSeconds = 0.20f;
+    static constexpr float kYawMaxSpeed = 1800.0f;        // 0.1 degree / second
+    static constexpr float kPitchMaxSpeed = 1000.0f;
+    /** The target moves only when the new one is farther than this from the held one (0.1 degree): ignores headset jitter. */
+    static constexpr float kTargetDeadband = 4.0f;
+    /** Max physics steps per update() call, so a stalled loop does not make a big jump. */
+    static constexpr int kMaxStepsPerUpdate = 5;
+    /**
+     * Speed (0-1000) passed to the servo for each 50Hz point of our trajectory. High = the servo's own spring
+     * is stiff and adds little lag to an already smooth path. Auto angle sync is turned off while following so the
+     * servo spring keeps its velocity between commands instead of restarting from rest.
+     */
+    static constexpr int kServoFollowSpeed = 1000;
+    static constexpr int kMoveCompleteDeadband = 1;  // 0.1 degree; the same integer angle is not sent again
     /** No "look" for this long: stop in place (Quest froze while the connection is still alive). */
     static constexpr int64_t kLookTimeoutUs = 1000000;
 
@@ -73,6 +91,7 @@ public:
 
 private:
     void applyFollow();
+    void setServoSync(bool enabled);
 
     bool _engaged = false;
     bool _prev_locked = false;
@@ -90,12 +109,16 @@ private:
     bool _follow = false;
     bool _smooth_valid = false;
     bool _stale = false;
-    float _smooth_yaw = 0.0f;  // 0.1 degree, servo direction
-    float _smooth_pitch = 0.0f;
+    float _pos_yaw = 0.0f;  // 0.1 degree, servo direction
+    float _pos_pitch = 0.0f;
+    float _vel_yaw = 0.0f;  // 0.1 degree / second
+    float _vel_pitch = 0.0f;
+    float _held_yaw = 0.0f;  // target after the deadband
+    float _held_pitch = 0.0f;
+    float _accum_s = 0.0f;
     int _cmd_yaw = 0;
     int _cmd_pitch = 0;
     int64_t _last_update_us = 0;
-    int64_t _last_cmd_us = 0;
 };
 
 }  // namespace mr_link

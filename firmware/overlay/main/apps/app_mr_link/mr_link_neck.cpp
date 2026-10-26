@@ -10,6 +10,25 @@
 
 using namespace mr_link;
 
+namespace {
+
+/** Critically damped spring step (Unity SmoothDamp). pos/vel in place. */
+void smooth_damp(float& pos, float& vel, float target, float smooth_s, float max_speed, float dt)
+{
+    smooth_s = std::max(smooth_s, 0.0001f);
+    const float omega = 2.0f / smooth_s;
+    const float x = omega * dt;
+    const float e = 1.0f / (1.0f + x + 0.48f * x * x + 0.235f * x * x * x);
+    const float max_change = max_speed * smooth_s;
+    const float change = std::clamp(pos - target, -max_change, max_change);
+    const float goal = pos - change;
+    const float temp = (vel + omega * change) * dt;
+    vel = (vel - omega * temp) * e;
+    pos = goal + (change + temp) * e;
+}
+
+}  // namespace
+
 void NeckLock::attach(Server& server)
 {
     // HTTP task: validate and record only. The servos are driven from update().
@@ -43,6 +62,13 @@ void NeckLock::detach(Server& server)
     _accept_look.store(false);
 }
 
+void NeckLock::setServoSync(bool enabled)
+{
+    auto& motion = GetStackChan().motion();
+    motion.yawServo().setAutoAngleSyncEnabled(enabled);
+    motion.pitchServo().setAutoAngleSyncEnabled(enabled);
+}
+
 void NeckLock::engage()
 {
     if (_engaged) {
@@ -71,6 +97,7 @@ void NeckLock::setFollow(bool follow)
         _has_look = false;  // never act on a target from before the mode changed
     }
     _accept_look.store(follow);
+    setServoSync(!follow);
     if (!follow) {
         GetStackChan().motion().moveWithSpeed(kYawAngle, kPitchAngle, kMoveSpeed);
     }
@@ -129,32 +156,50 @@ void NeckLock::applyFollow()
     const float target_pitch =
         std::clamp(pitch_deg * 10.0f, static_cast<float>(kPitchMin), static_cast<float>(kPitchMax));
 
-    const float dt = _last_update_us == 0 ? 0.02f : static_cast<float>(now - _last_update_us) / 1e6f;
-    _last_update_us = now;
     if (!_smooth_valid) {
         const auto current = motion.getCurrentAngles();
-        _smooth_yaw = static_cast<float>(current.x);
-        _smooth_pitch = static_cast<float>(current.y);
+        _pos_yaw = _held_yaw = static_cast<float>(current.x);
+        _pos_pitch = _held_pitch = static_cast<float>(current.y);
+        _vel_yaw = _vel_pitch = 0.0f;
         _cmd_yaw = current.x;
         _cmd_pitch = current.y;
+        _accum_s = 0.0f;
+        _last_update_us = now;
         _smooth_valid = true;
     }
-    const float alpha = 1.0f - std::exp(-std::max(dt, 0.0f) / kSmoothingSeconds);
-    _smooth_yaw += (target_yaw - _smooth_yaw) * alpha;
-    _smooth_pitch += (target_pitch - _smooth_pitch) * alpha;
 
-    if (now - _last_cmd_us < kCommandIntervalUs) {
+    // Deadband on the target: small headset jitter does not move the neck
+    if (std::fabs(target_yaw - _held_yaw) > kTargetDeadband) {
+        _held_yaw = target_yaw;
+    }
+    if (std::fabs(target_pitch - _held_pitch) > kTargetDeadband) {
+        _held_pitch = target_pitch;
+    }
+
+    // Fixed-step physics so the motion does not depend on how often update() is called
+    _accum_s += static_cast<float>(now - _last_update_us) / 1e6f;
+    _last_update_us = now;
+    int steps = 0;
+    while (_accum_s >= kStepSeconds) {
+        _accum_s -= kStepSeconds;
+        if (steps < kMaxStepsPerUpdate) {
+            smooth_damp(_pos_yaw, _vel_yaw, _held_yaw, kYawSmoothSeconds, kYawMaxSpeed, kStepSeconds);
+            smooth_damp(_pos_pitch, _vel_pitch, _held_pitch, kPitchSmoothSeconds, kPitchMaxSpeed, kStepSeconds);
+            ++steps;
+        }
+    }
+    if (steps == 0) {
         return;
     }
-    const int yaw = static_cast<int>(std::lround(_smooth_yaw));
-    const int pitch = static_cast<int>(std::lround(_smooth_pitch));
-    if (std::abs(yaw - _cmd_yaw) < kCommandDeadband && std::abs(pitch - _cmd_pitch) < kCommandDeadband) {
+
+    const int yaw = static_cast<int>(std::lround(_pos_yaw));
+    const int pitch = static_cast<int>(std::lround(_pos_pitch));
+    if (std::abs(yaw - _cmd_yaw) < kMoveCompleteDeadband && std::abs(pitch - _cmd_pitch) < kMoveCompleteDeadband) {
         return;
     }
-    motion.moveWithSpeed(yaw, pitch, kFollowSpeed);
+    motion.moveWithSpeed(yaw, pitch, kServoFollowSpeed);
     _cmd_yaw = yaw;
     _cmd_pitch = pitch;
-    _last_cmd_us = now;
 }
 
 void NeckLock::release()
@@ -164,6 +209,7 @@ void NeckLock::release()
     }
     _accept_look.store(false);
     _follow = false;
+    setServoSync(true);
     GetStackChan().motion().setModifyLock(_prev_locked);
     _engaged = false;
 }
