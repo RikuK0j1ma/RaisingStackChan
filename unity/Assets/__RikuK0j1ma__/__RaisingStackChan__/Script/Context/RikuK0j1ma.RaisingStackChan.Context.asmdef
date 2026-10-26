@@ -6,7 +6,6 @@
         "RikuK0j1ma.RaisingStackChan.UseCase",
         "RikuK0j1ma.RaisingStackChan.Infrastructure",
         "RikuK0j1ma.RaisingStackChan.Presentation",
-        "RikuK0j1ma.RaisingStackChan.Controller",
         "RikuK0j1ma.RaisingStackChan.Platform.Meta",
         "UniTask",
         "VContainer",

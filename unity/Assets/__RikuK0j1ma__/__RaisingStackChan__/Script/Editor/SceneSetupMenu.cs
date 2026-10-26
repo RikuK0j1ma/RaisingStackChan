@@ -83,7 +83,11 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var rig = InstantiatePackagePrefab("OVRCameraRig");
-            if (rig != null) SetUpPassthrough(rig);
+            if (rig != null)
+            {
+                SetUpPassthrough(rig);
+                InteractionRigMenu.AddTo();
+            }
             InstantiatePackagePrefab("MRUK");
 
             var light = new GameObject("Directional Light").AddComponent<Light>();

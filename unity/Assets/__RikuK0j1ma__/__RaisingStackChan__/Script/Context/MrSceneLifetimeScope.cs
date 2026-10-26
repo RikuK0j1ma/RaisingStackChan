@@ -1,11 +1,8 @@
-using System.Collections.Generic;
-using RikuK0j1ma.RaisingStackChan.Controller;
 using RikuK0j1ma.RaisingStackChan.Entity;
 using RikuK0j1ma.RaisingStackChan.Infrastructure;
 using RikuK0j1ma.RaisingStackChan.Presentation;
 using RikuK0j1ma.RaisingStackChan.UseCase;
 using UnityEngine;
-using UnityEngine.XR;
 using VContainer;
 using VContainer.Unity;
 
@@ -41,17 +38,13 @@ namespace RikuK0j1ma.RaisingStackChan.Context
 #endif
                 builder.Register<NullStackChanPoseProvider>(Lifetime.Singleton).As<IStackChanPoseProvider>();
 
-            // Real sphere spawner (Presentation) + controller input. Safe without a headset: the XR
-            // devices are simply untracked, so no sphere appears. NullSphereSpawner stays for tests.
             builder.RegisterInstance(sphereConfig != null ? sphereConfig : ScriptableObject.CreateInstance<SphereConfig>());
-            builder.Register<SphereSpawner>(Lifetime.Singleton).As<ISphereSpawner>().As<ISphereInteraction>();
-            // One list instance: VContainer rejects two registrations with the same implementation type.
-            builder.RegisterInstance<IReadOnlyList<IHandInputSource>>(new IHandInputSource[]
-            {
-                new XrControllerInputSource(XRNode.LeftHand),
-                new XrControllerInputSource(XRNode.RightHand),
-            });
-            builder.RegisterEntryPoint<SphereGrabController>();
+            // Meta SDK spawner: A / X or middle pinch spawns, the Interaction SDK grabs and throws.
+#if UNITY_EDITOR || UNITY_ANDROID
+            RikuK0j1ma.RaisingStackChan.Platform.Meta.MetaPlatformInstaller.RegisterSphereSpawner(builder);
+#else
+            builder.Register<NullSphereSpawner>(Lifetime.Singleton).As<ISphereSpawner>();
+#endif
 
             builder.Register<SuckInEatEffect>(Lifetime.Singleton).As<IEatEffect>(); // takes SphereConfig
             builder.Register<NullEatSound>(Lifetime.Singleton).As<IEatSound>();

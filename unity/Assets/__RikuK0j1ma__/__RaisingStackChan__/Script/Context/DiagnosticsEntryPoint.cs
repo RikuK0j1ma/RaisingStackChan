@@ -15,13 +15,16 @@ namespace RikuK0j1ma.RaisingStackChan.Context
         private readonly SetupGuideUseCase guide;
         private readonly IStackChanLink link;
         private readonly IStackChanPoseProvider pose;
+        private readonly ISphereSpawner spheres;
         private readonly StringBuilder sb = new StringBuilder();
 
-        public DiagnosticsEntryPoint(SetupGuideUseCase guide, IStackChanLink link, IStackChanPoseProvider pose)
+        public DiagnosticsEntryPoint(SetupGuideUseCase guide, IStackChanLink link, IStackChanPoseProvider pose,
+            ISphereSpawner spheres)
         {
             this.guide = guide;
             this.link = link;
             this.pose = pose;
+            this.spheres = spheres;
         }
 
         public void Start()
@@ -40,6 +43,7 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             sb.AppendLine(pose.TryGetFacePose(out var face)
                 ? $"Face pose: {face.position:F2}"
                 : "Face pose: none");
+            if (spheres is IDiagnosticsSource sphereStatus) sb.AppendLine(sphereStatus.DescribeStatus());
             if (pose is IDiagnosticsSource source) sb.Append(source.DescribeStatus());
             return sb.ToString();
         }

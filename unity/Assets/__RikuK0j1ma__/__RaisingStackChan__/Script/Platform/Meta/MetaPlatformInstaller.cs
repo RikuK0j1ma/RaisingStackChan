@@ -34,6 +34,14 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             return true;
         }
 
+        /// <summary>Registers the Meta SDK sphere spawner (spawn and grab input).</summary>
+        public static void RegisterSphereSpawner(IContainerBuilder builder)
+        {
+            builder.Register<MetaSphereSpawner>(Lifetime.Singleton)
+                .As<ISphereSpawner>()
+                .As<ITickable>();
+        }
+
         /// <summary>
         /// Registers the OVRCameraRig head position as IHeadPoseProvider when the rig is in the scene.
         /// Returns false (and registers nothing) otherwise, so the caller keeps its Null fallback.
