@@ -63,6 +63,7 @@ void NeckLock::setFollow(bool follow)
         return;
     }
     _follow = follow;
+    mclog::tagInfo("MOGUMOGU/neck", "follow headset: {}", follow ? "on" : "off");
     _smooth_valid = false;
     _stale = false;
     {
@@ -122,9 +123,9 @@ void NeckLock::applyFollow()
     }
     _stale = false;
 
-    // Message: yaw right +, pitch up +, degrees. Servo: yaw left +, pitch up +, 0.1 degree.
+    // Message: yaw right +, pitch up +, degrees. Servo: 0.1 degree (yaw sign: see kYawSign).
     const float target_yaw =
-        std::clamp(-yaw_deg * 10.0f, static_cast<float>(-kYawLimit), static_cast<float>(kYawLimit));
+        std::clamp(kYawSign * yaw_deg * 10.0f, static_cast<float>(-kYawLimit), static_cast<float>(kYawLimit));
     const float target_pitch =
         std::clamp(pitch_deg * 10.0f, static_cast<float>(kPitchMin), static_cast<float>(kPitchMax));
 

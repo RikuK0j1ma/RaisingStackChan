@@ -9,6 +9,7 @@
 #include <mooncake.h>
 #include <mooncake_log.h>
 #include <smooth_lvgl.hpp>
+#include <stackchan/stackchan.h>
 
 using namespace mooncake;
 using namespace smooth_ui_toolkit::lvgl_cpp;
@@ -127,6 +128,12 @@ void AppMrLink::onRunning()
     // Follow the headset only while a client is connected and the QR is hidden (QR detection needs a still face)
     _neck.setFollow(mr_link::GetServer().hasClient() && !_qr.isShown());
     _neck.update();
+    {
+        // Servo::move*() only sets an animation target; the servo is written in StackChan::update() (Motion::update).
+        // The avatar animation (blinking, emotions) is stepped there too. Every official app calls it each frame.
+        LvglLockGuard lock;
+        GetStackChan().update();
+    }
     if (_touch.consume() && !_qr.isShown()) {
         _qr.show();  // touch brings the QR back (re-calibration)
     }

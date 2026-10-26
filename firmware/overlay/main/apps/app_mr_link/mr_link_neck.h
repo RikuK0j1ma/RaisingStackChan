@@ -35,6 +35,12 @@ public:
     static constexpr int kYawLimit = 1200;
     static constexpr int kPitchMin = 0;
     static constexpr int kPitchMax = 800;
+    /**
+     * Message yaw (right +) to servo yaw. Official Motion::lookAtPoint() suggests the servo turns left for +, which
+     * would make this -1, but on the device the neck turned the opposite way (pitch was fine). Either the QR face
+     * frame on the Quest side or the servo direction differs from that assumption; it is compensated here.
+     */
+    static constexpr float kYawSign = 1.0f;
     /** Largest |degrees| accepted from a message. Anything beyond is dropped as garbage. */
     static constexpr float kMaxInputDeg = 360.0f;
 
