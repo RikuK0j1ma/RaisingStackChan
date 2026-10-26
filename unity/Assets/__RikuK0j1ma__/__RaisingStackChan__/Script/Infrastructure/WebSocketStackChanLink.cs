@@ -157,7 +157,9 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
                 {
                     using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct))
                     {
-                        timeout.CancelAfterSlim(ConnectTimeoutMs);
+                        // Not CancelAfterSlim: its player-loop timer outlives this using block and later calls Cancel()
+                        // on the disposed source (ObjectDisposedException every time a connect succeeds).
+                        timeout.CancelAfter(ConnectTimeoutMs);
                         await socket.ConnectAsync(candidate.ToUri(), timeout.Token);
                     }
 
