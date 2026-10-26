@@ -45,6 +45,21 @@ Quest の MR で、StackChan の顔の位置に球体（餌）を出し、口に
 
 ---
 
+## ファームのビルドと書き込み（Claude が実行するとき）
+
+ESP-IDF 5.5.x は `C:\Espressif` に入っている。普通の PowerShell では `idf.py` が使えないので、次のように環境を読み込んでから `build.ps1` を実行する。
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ". C:\Espressif\Initialize-Idf.ps1 -IdfId esp-idf-7a8737a10725bc5cb19d516a1186b39f; Set-Location D:\RikuKojima\RaisingStackChan\firmware; .\build.ps1"
+```
+
+- 書き込みは、同じコマンドの最後を `.\build.ps1 -Task flash -Port COMx` にする。COM ポートは `Get-CimInstance Win32_SerialPort` で調べる（StackChan は「USB Serial Device」と出る）。
+- ビルドは数分以上かかる。`run_in_background` で実行し、完了通知を待つ。
+- 作業コピーは `<ドライブ>:\rsc-fw\`、コンポーネントのキャッシュは `C:\ecm`（どちらも `build.ps1` が設定する。Windows のパス長の制限への対策）。
+- 書き込みは工場出荷ファームを置き換えるので、ユーザーが書き込みを頼んだときだけ行う。
+
+---
+
 ## 確認が要る操作
 
 - 実機への書込み（`build.ps1 -Task flash`）: 工場出荷ファームを置き換える。
