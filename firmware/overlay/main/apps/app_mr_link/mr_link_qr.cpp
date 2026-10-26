@@ -14,9 +14,12 @@ using smooth_ui_toolkit::lvgl_cpp::Qrcode;
 
 static const std::string _tag = "MOGUMOGU/qr";
 
-// 320x240 screen. The white box keeps a quiet zone around the QR (needed for detection on a dark face).
-static constexpr int kBoxSize = 204;
-static constexpr int kQrSize = 176;
+// 320x240 screen. The whole screen is white (quiet zone), the QR fills the height. The payload always needs
+// QR version 4 (33 modules, ECC medium), and LVGL scales by whole pixels, so 231 = 33 modules x 7 px.
+static constexpr int kQrSize = 231;
+// Backlight while the QR is shown (percent). At full brightness the camera blooms the white and the modules
+// merge, so the QR is dimmed; the previous level is restored when the QR goes away.
+static constexpr uint8_t kQrBrightness = 40;
 // Wi-Fi setup page: three text lines on top leave less room for the QR
 static constexpr int kSetupBoxSize = 148;
 static constexpr int kSetupQrSize = 128;
@@ -85,6 +88,21 @@ void Qr::hide()
     LvglLockGuard lock;
     destroy();
     _shown = false;
+    setQrBrightness(false);
+}
+
+void Qr::setQrBrightness(bool on)
+{
+    if (on) {
+        if (!_brightness_saved) {
+            _saved_brightness = GetHAL().getBackLightBrightness();
+            _brightness_saved = true;
+        }
+        GetHAL().setBackLightBrightness(kQrBrightness, false);
+    } else if (_brightness_saved) {
+        GetHAL().setBackLightBrightness(_saved_brightness, false);
+        _brightness_saved = false;
+    }
 }
 
 void Qr::update()
@@ -168,6 +186,7 @@ void Qr::build()
 
     if (_ip.empty()) {
         mclog::tagWarn(_tag, "no IP address, showing guidance");
+        setQrBrightness(false);
         switch (_guide.mode) {
             case Guide::Mode::Config:
                 buildWifiSetup(label);
@@ -184,26 +203,18 @@ void Qr::build()
         return;
     }
 
-    lv_label_set_text(label, "Look at me with Quest!");
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 4);
-
-    lv_obj_t* box = lv_obj_create(_root);
-    lv_obj_set_size(box, kBoxSize, kBoxSize);
-    lv_obj_align(box, LV_ALIGN_BOTTOM_MID, 0, -4);
-    lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(box, 0, 0);
-    lv_obj_set_style_border_width(box, 0, 0);
-    lv_obj_set_style_pad_all(box, 0, 0);
-    lv_obj_set_style_bg_color(box, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
+    // The QR page is all white with the QR only (no text): every pixel goes to the QR.
+    lv_obj_delete(label);
+    lv_obj_set_style_bg_color(_root, lv_color_hex(0xFFFFFF), 0);
 
     // Pure black on pure white for the best contrast
-    _qrcode = std::make_unique<Qrcode>(box);
+    _qrcode = std::make_unique<Qrcode>(_root);
     _qrcode->setSize(kQrSize);
     _qrcode->setDarkColor(lv_color_hex(0x000000));
     _qrcode->setLightColor(lv_color_hex(0xFFFFFF));
     _qrcode->update(makePayload(_ip));
     _qrcode->align(LV_ALIGN_CENTER, 0, 0);
+    setQrBrightness(true);
 
     mclog::tagInfo(_tag, "showing QR for {}:{}", _ip, _port);
 }

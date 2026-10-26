@@ -56,6 +56,8 @@ private:
     void build();
     void buildWifiSetup(lv_obj_t* label);
     void destroy();
+    /** Dim the backlight for the QR (on) or restore the saved level (off). Caller holds the LVGL lock. */
+    void setQrBrightness(bool on);
     std::string viewKey() const;
 
     std::string _token;
@@ -64,6 +66,8 @@ private:
     std::string _key;  // what the page was built for (IP and guide). A change rebuilds it.
     Guide _guide;
     bool _shown = false;
+    bool _brightness_saved = false;
+    uint8_t _saved_brightness = 0;
     int64_t _last_check_us = 0;
     lv_obj_t* _root = nullptr;
     std::unique_ptr<smooth_ui_toolkit::lvgl_cpp::Qrcode> _qrcode;

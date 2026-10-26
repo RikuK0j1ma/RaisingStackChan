@@ -91,7 +91,7 @@ docs/       設計
 スクリプトは `Script/` 以下。依存の向きは次のとおりで、逆向きの参照は追加しない。
 
 ```
-Utility ← Extension ← Entity ← UseCase ← Infrastructure / Presentation / Controller / Platform.Meta
+Utility ← Extension ← Entity ← UseCase ← Infrastructure / Presentation / Platform.Meta
                                                        ↑
                                                     Context
 ```
@@ -101,9 +101,8 @@ Utility ← Extension ← Entity ← UseCase ← Infrastructure / Presentation /
 | Entity | 設定値（ScriptableObject）、値型、列挙 |
 | UseCase | アプリの手順と、外部機能のインターフェース（`IStackChanLink`、`IStackChanPoseProvider` など）。UI・Unity の描画系・VContainer には依存しない |
 | Infrastructure | UseCase のインターフェースの Unity 実装（WebSocket、アンカー永続化）と、実機が無いときの Null 実装 |
-| Platform.Meta | Quest 固有の実装（QR 検出、Passthrough、Spatial Anchor）。Editor と Android だけ |
-| Presentation | 画面表示（球体、ガイド UI） |
-| Controller | 入力（ハンド、コントローラー） |
+| Platform.Meta | Quest 固有の実装（QR 検出、Passthrough、Spatial Anchor、球体の生成と入力）。Meta SDK のクラス（OVRInput、OVRHand、Interaction SDK の Grabbable など）をそのまま使う。Editor と Android だけ |
+| Presentation | 画面表示（ガイド UI、食べる演出） |
 | Context | VContainer の LifetimeScope とエントリーポイント |
 | DebugTools | 開発ビルド専用。`RSC_DEVELOPMENT` が無いとアセンブリごとビルドから外れる。Context からは参照しない |
 | Editor | エディタ拡張 |
