@@ -34,5 +34,8 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         /// yaw + is right, pitch + is up, (0, 0) is straight ahead. Throws when not connected.
         /// </summary>
         UniTask SendLookAsync(float yawDeg, float pitchDeg, CancellationToken ct);
+
+        /// <summary>Asks StackChan to hide the QR and go back to the face (hideQr). The connection stays up.</summary>
+        UniTask SendHideQrAsync(CancellationToken ct);
     }
 }

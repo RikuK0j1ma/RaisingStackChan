@@ -112,6 +112,7 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
         public void Messages_ShowQr_AndHelloType()
         {
             Assert.AreEqual("{\"type\":\"showQr\"}", StackChanMessages.ShowQr());
+            Assert.AreEqual("{\"type\":\"hideQr\"}", StackChanMessages.HideQr());
             Assert.AreEqual("hello", StackChanMessages.TryGetType("{\"type\":\"hello\",\"mac\":\"x\"}", out _));
             Assert.IsNull(StackChanMessages.TryGetType("nope", out _));
         }

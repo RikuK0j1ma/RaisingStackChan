@@ -32,7 +32,7 @@ ws://<ip>:8765/ws?token=<token>
 - 当初案の `rsc://<ip>:<port>?t=<token>` は採らない。URL をそのまま接続に使えるので、変換が要らない。
 - 画面（320x240）に、黒地に白の QR（176px、周囲に白い余白）を中央寄せで全画面表示する。上部に案内テキスト（英語。標準フォントに日本語の字が無いため「Questで見てね」は出せない）。
 - Wi-Fi が未接続（IP が無い）ときは QR の代わりに案内（BLE で StackChan World アプリから Wi-Fi を設定して MOGUMOGU を開き直す）を出す。IP が後から取れたら自動で QR に切り替わる。
-- Quest が接続（認証成功）したら QR を消して顔に切り替える。切断したら QR に戻る（待受け）。Quest からの `showQr` や画面タッチでも再表示する。実装は `mr_link_qr.{h,cpp}`。
+- Quest が接続（認証成功）したら QR を消して顔に切り替える。切断したら QR に戻る（待受け）。Quest からの `showQr` や画面タッチでも再表示し、`hideQr` で消す。実装は `mr_link_qr.{h,cpp}`。
 - 顔は公式の `DefaultAvatar`（目と口）を `GetStackChan()` に付けたもの。アプリを開くときに先に作り、その上に QR のページを全画面で重ねる。QR を消すと顔が見える。`emotion` メッセージはこの顔の表情を変える。顔の生成・破棄は `mr_link_face.{h,cpp}` の 1 か所にまとめてあり、見た目を変えるときはここだけ直す。
 
 ## 通信
@@ -62,6 +62,7 @@ Quest → StackChan:
 | `emotion` | `value`（`happy` ほか）、`durationMs`（省略時は StackChan 側の既定） | 表情を変える。`durationMs` 後に Neutral へ戻す |
 | `showQr` | なし | QR を再表示する（再キャリブ） |
 | `look` | `yaw`（度、右が +）、`pitch`（度、上が +） | StackChan の顔の正面を 0 とした、ヘッドセットの方向。接続中、QR を隠している間だけ有効 |
+| `hideQr` | なし | QR を消して顔に戻す。接続は切らない |
 
 StackChan → Quest:
 
@@ -75,6 +76,7 @@ StackChan → Quest:
 {"type":"emotion","value":"happy","durationMs":3000}
 {"type":"showQr"}
 {"type":"look","yaw":-12.5,"pitch":4.0}
+{"type":"hideQr"}
 {"type":"hello","proto":1,"mac":"AA:BB:CC:DD:EE:FF","fw":"V1.0.0"}
 ```
 
@@ -119,7 +121,17 @@ StackChan → Quest:
 
 ### 位置がずれたとき
 
-Quest のメニューから「再キャリブ」。StackChan が QR を再表示する。
+Quest の左コントローラーの **Y ボタン**で、StackChan の QR と顔を切り替える（押すたびに「顔 → QR → 顔」）。メニューの「再キャリブ」でも QR が出る。
+
+| 状態 | Y ボタン | 結果 |
+|---|---|---|
+| 顔が出ている（接続中） | 押す | `showQr` を送る。StackChan に QR が出る。保存済みのアンカーは、新しい位置が確定するまで残す |
+| QR が出ている | 押す | `hideQr` を送る。顔に戻る。位置は今のまま（アンカーも更新しない） |
+| QR が出ている | 新しい QR を読み取れた | アンカーを更新して保存し、`hideQr` を送って顔に戻る（Y を押さなくてよい） |
+
+- どの場合も WebSocket は切らない。接続していないときの Y ボタンは無視する。
+- StackChan は新しく接続されたときも QR を消す。Quest 側は接続を検知したら「QR を表示中」の状態を捨てる。
+- 実装: 入力は Platform.Meta の `OvrQrToggleInput`（`OVRInput.Button.Four`、左コントローラー）、状態管理は UseCase の `RecalibrationService`（`IsQrShown`、`ToggleQrAsync`）。ファームは `hideQr` のハンドラが `_qr.hide()` を呼ぶ。
 
 ## Unity の構成
 

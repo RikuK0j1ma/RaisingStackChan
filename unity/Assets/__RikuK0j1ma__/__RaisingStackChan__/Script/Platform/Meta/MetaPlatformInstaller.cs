@@ -9,6 +9,14 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
     /// <summary>Registers Meta-specific implementations. Called from Context.</summary>
     public static class MetaPlatformInstaller
     {
+        /// <summary>Registers the Y button input (IQrToggleInput).</summary>
+        public static void RegisterQrToggleInput(IContainerBuilder builder)
+        {
+            builder.Register<OvrQrToggleInput>(Lifetime.Singleton)
+                .As<IQrToggleInput>()
+                .As<ITickable>();
+        }
+
         /// <summary>
         /// Registers the MRUK QR pose provider as IStackChanPoseProvider when MRUK is in the scene.
         /// Returns false (and registers nothing) otherwise, so the caller keeps its Null fallback.

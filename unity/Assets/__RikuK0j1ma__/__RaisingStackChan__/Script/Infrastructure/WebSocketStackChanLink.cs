@@ -75,6 +75,9 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
         public UniTask SendLookAsync(float yawDeg, float pitchDeg, CancellationToken ct)
             => SendTextAsync(StackChanMessages.Look(yawDeg, pitchDeg), ct);
 
+        public UniTask SendHideQrAsync(CancellationToken ct)
+            => SendTextAsync(StackChanMessages.HideQr(), ct);
+
         public void Dispose()
         {
             _lifetime.Cancel();
