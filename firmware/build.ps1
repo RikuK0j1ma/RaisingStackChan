@@ -64,6 +64,21 @@ Copy-Tree $upstream @('build', 'components', 'xiaozhi-esp32')
 # 2. our app
 Copy-Tree $overlay
 
+# sdkconfig.defaults.local is only read when sdkconfig does not exist yet. If an option we need is missing from an
+# existing sdkconfig, delete it so it is regenerated (the build output stays).
+$wantedCfg = Join-Path $overlay 'sdkconfig.defaults.local'
+$currentCfg = Join-Path $work 'sdkconfig'
+if ((Test-Path $wantedCfg) -and (Test-Path $currentCfg)) {
+    $have = [IO.File]::ReadAllText($currentCfg)
+    foreach ($line in [IO.File]::ReadAllLines($wantedCfg)) {
+        if ($line -match '^CONFIG_[A-Z0-9_]+=y$' -and -not $have.Contains($line)) {
+            Write-Host "sdkconfig is missing $line, regenerating it"
+            Remove-Item $currentCfg -Force
+            break
+        }
+    }
+}
+
 # 3. register the app (the only edits made to upstream sources)
 Add-LineAfter (Join-Path $work 'main\apps\apps.h') '#include "app_dance/app_dance.h"' '#include "app_mr_link/app_mr_link.h"'
 Add-LineAfter (Join-Path $work 'main\main.cpp') 'GetMooncake().installApp(std::make_unique<AppDance>());' 'GetMooncake().installApp(std::make_unique<AppMrLink>());'

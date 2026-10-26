@@ -75,6 +75,9 @@ bool Server::start(const Config& config)
     uri.user_ctx = this;
     uri.is_websocket = true;
     uri.handle_ws_control_frames = false;  // httpd answers PING and CLOSE by itself
+    // httpd never calls uri.handler for the handshake request itself, so the token check and the client
+    // registration have to run from this callback (needs CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT=y).
+    uri.ws_post_handshake_cb = onHandshakeDone;
     if (httpd_register_uri_handler(_server, &uri) != ESP_OK) {
         mclog::tagError(_tag, "register ws handler failed");
         httpd_stop(_server);
@@ -218,35 +221,44 @@ bool Server::checkToken(httpd_req_t* req) const
     return diff == 0;
 }
 
+esp_err_t Server::onHandshakeDone(httpd_req_t* req)
+{
+    return static_cast<Server*>(req->user_ctx)->handleHandshake(req);
+}
+
+esp_err_t Server::handleHandshake(httpd_req_t* req)
+{
+    const int fd = httpd_req_to_sockfd(req);
+
+    // The handshake response is already sent, so a bad token can only be rejected by closing the
+    // connection (returning an error does that).
+    if (!checkToken(req)) {
+        mclog::tagWarn(_tag, "rejected connection (bad token)");
+        return ESP_FAIL;
+    }
+    int old_fd = -1;
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        old_fd = _client_fd;
+        _client_fd = fd;
+    }
+    if (old_fd >= 0 && old_fd != fd) {
+        // Only one client: the newest authenticated one wins (the old one may be a half-open socket)
+        mclog::tagInfo(_tag, "replacing previous client");
+        httpd_sess_trigger_close(req->handle, old_fd);
+    }
+    mclog::tagInfo(_tag, "client connected");
+    sendHello(fd);
+    notifyConnection(true);
+    return ESP_OK;
+}
+
 esp_err_t Server::handleRequest(httpd_req_t* req)
 {
     const int fd = httpd_req_to_sockfd(req);
 
-    if (req->method == HTTP_GET) {
-        // The WebSocket handshake is already done by httpd when we get here, so a bad token
-        // can only be rejected by closing the connection (returning an error does that).
-        if (!checkToken(req)) {
-            mclog::tagWarn(_tag, "rejected connection (bad token)");
-            return ESP_FAIL;
-        }
-        int old_fd = -1;
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            old_fd = _client_fd;
-            _client_fd = fd;
-        }
-        if (old_fd >= 0 && old_fd != fd) {
-            // Only one client: the newest authenticated one wins (the old one may be a half-open socket)
-            mclog::tagInfo(_tag, "replacing previous client");
-            httpd_sess_trigger_close(req->handle, old_fd);
-        }
-        mclog::tagInfo(_tag, "client connected");
-        sendHello(fd);
-        notifyConnection(true);
-        return ESP_OK;
-    }
-
-    // Data frame. Only the authenticated client may talk.
+    // WebSocket data frame (the handshake never reaches here, see onHandshakeDone).
+    // Only the authenticated client may talk.
     {
         std::lock_guard<std::mutex> lock(_mutex);
         if (fd != _client_fd) {

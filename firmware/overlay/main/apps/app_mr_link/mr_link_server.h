@@ -80,6 +80,8 @@ private:
     };
 
     static esp_err_t wsHandler(httpd_req_t* req);
+    static esp_err_t onHandshakeDone(httpd_req_t* req);
+    esp_err_t handleHandshake(httpd_req_t* req);
     static void onSessionClose(httpd_handle_t hd, int sockfd);
 
     esp_err_t handleRequest(httpd_req_t* req);
