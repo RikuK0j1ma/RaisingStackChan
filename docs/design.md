@@ -60,6 +60,7 @@ Quest → StackChan:
 |---|---|---|
 | `emotion` | `value`（`happy` ほか）、`durationMs`（省略時は StackChan 側の既定） | 表情を変える。`durationMs` 後に Neutral へ戻す |
 | `showQr` | なし | QR を再表示する（再キャリブ） |
+| `look` | `yaw`（度、右が +）、`pitch`（度、上が +） | StackChan の顔の正面を 0 とした、ヘッドセットの方向。接続中、QR を隠している間だけ有効 |
 
 StackChan → Quest:
 
@@ -72,12 +73,22 @@ StackChan → Quest:
 ```
 {"type":"emotion","value":"happy","durationMs":3000}
 {"type":"showQr"}
+{"type":"look","yaw":-12.5,"pitch":4.0}
 {"type":"hello","proto":1,"mac":"AA:BB:CC:DD:EE:FF","fw":"V1.0.0"}
 ```
 
+### look（首の追従）
+
+- Quest は、顔の位置（QR で確定した姿勢）とヘッドセットの位置から、顔の正面を 0 とした yaw / pitch を計算して送る。顔の局所 +Z を正面、+Y を上とみなす（実機で要検証）。
+- 送信は約 15 Hz。値は 0.1 度に丸める。Quest 側で時定数 0.15 秒のローパスをかける。頭が止まっていても同じ頻度で送り続ける（StackChan の無入力タイムアウトのため）。
+- Quest が送るのは、接続中で、セットアップガイドが完了（Connected）しているときだけ。切断中、QR を表示している間（初回の接続前、再キャリブ中）は送らない。
+- StackChan は、クライアントが接続していて QR を隠しているときだけ `look` を受け付け、それ以外は無視する。QR の表示中と切断中は首を正面に固定する（切断すると正面へ戻る）。
+- 角度の単位変換: メッセージは「右が +」、サーボの yaw は「左が +」（0.1 度単位）なので、符号を反転して 10 倍する。yaw は ±120 度、pitch は 0〜80 度に収める（サーボ自身の可動範囲でもさらに制限される）。範囲外の値や非数は捨てる。
+- StackChan 側でも目標値を平滑化し、サーボへの指令は最大 20 回/秒、0.3 度未満の変化は送らない。1 秒間 `look` が来なければ、その場で止める（`look` が再開したら追従も再開）。
+
 ### ファーム側の購読 API
 
-`mr_link::GetServer()` から `addMessageHandler("emotion", ...)`、`addConnectionHandler(...)`、`sendText(...)` を使う。ハンドラは HTTP サーバーのタスクで呼ばれるので、短く返し、LVGL を触るときは `LvglLockGuard` を取る。
+`mr_link::GetServer()` から `addMessageHandler("emotion", ...)`（首は `NeckLock::attach()` が `look` を購読する）、`addConnectionHandler(...)`、`sendText(...)` を使う。ハンドラは HTTP サーバーのタスクで呼ばれるので、短く返し、LVGL を触るときは `LvglLockGuard` を取る。
 
 公式ファームの既存の LAN WebSocket（`hal/utils/local_network`）は、StackChan がクライアントで、接続先をクラウド経由で受け取る作りなので使わない。
 
@@ -101,6 +112,10 @@ StackChan → Quest:
 2. 口付近の半径内に一定時間入ると、球体が口へ吸い込まれて縮み、効果音とともに消える。
 3. StackChan が喜び顔（Happy）になり、数秒後に通常顔へ戻る。
 
+### 首の追従
+
+接続中（QR を隠している間）は、StackChan が首を動かしてヘッドセットの方を向き続ける。プレイヤーが動けば首が追従する。切断したら正面に戻る。QR を表示している間は、QR の検出を安定させるため正面に固定する。
+
 ### 位置がずれたとき
 
 Quest のメニューから「再キャリブ」。StackChan が QR を再表示する。
@@ -110,14 +125,14 @@ Quest のメニューから「再キャリブ」。StackChan が QR を再表示
 層構造は [CLAUDE.md](../CLAUDE.md) を参照。
 
 - Entity: `EatConfig`（食べる半径、保持時間）、`StackChanEmotion`
-- UseCase: `CalibrateStackChanUseCase`（QR 検出 → 位置確定 → 保存）、`FeedSphereUseCase`（距離判定 → 消滅 → 感情送信）、インターフェース `IStackChanLink` / `IStackChanPoseProvider` / `ISphereSpawner`
+- UseCase: `CalibrateStackChanUseCase`（QR 検出 → 位置確定 → 保存）、`FeedSphereUseCase`（距離判定 → 消滅 → 感情送信）、`HeadLookUseCase`（顔とヘッドセットの位置から yaw / pitch を計算して `look` を送る。平滑化と送信レート制限つき）、インターフェース `IStackChanLink` / `IStackChanPoseProvider` / `IHeadPoseProvider` / `ISphereSpawner`
 - Infrastructure: WebSocket 実装、アンカー永続化、Null 実装（エディタ用）
-- Platform.Meta: QR 検出、Passthrough 設定
+- Platform.Meta: QR 検出、Passthrough 設定、ヘッドセット位置（`OvrHeadPoseProvider`、`OVRCameraRig` の centerEye）
 - DebugTools: StackChan 無しで動かすための疑似 Link と疑似位置
 
 ## ファームウェアの構成
 
-`firmware/overlay/main/apps/app_mr_link/` に自作アプリを置く。MR 中は `idle_motion` を無効にして首を固定する。ビルド方法は [firmware/README.md](../firmware/README.md)。
+`firmware/overlay/main/apps/app_mr_link/` に自作アプリを置く。`mr_link_neck.{h,cpp}`（`NeckLock`）が首を持つ。MOGUMOGU を開いている間は `Motion::setModifyLock(true)` で `idle_motion` などを無効にする。QR 表示中と切断中は正面に固定し、接続中で QR を隠している間は `look` を受けて首を追従させる（上記「look」）。閉じるときに元のロック状態へ戻す。ビルド方法は [firmware/README.md](../firmware/README.md)。
 
 ## リスクと要検証
 
@@ -128,5 +143,9 @@ Quest のメニューから「再キャリブ」。StackChan が QR を再表示
   - MRUK が無いシーン（エディタなど）では Null 実装にフォールバックする。
 - QR が小さい: 2 インチ画面なので、検出距離は 1m 程度が限界。画面の反射にも注意する。初回だけ近づけば足りる。
 - Wi-Fi: 端末間通信を遮断する設定（ゲストネットワークなど）では接続できない。
-- 首の動き: MR 中は固定が前提。動かすなら、サーボ角を Quest に送って補正する。
+- 首の動き（#26）: 接続中は首がヘッドセットを追うので、顔と口の位置が QR で確定した位置からずれる。食べる判定の補正は未実装。次のどれにするか実機で決める。
+  - Quest が自分で送った角度から首の回転を打ち消して補正する（首の回転軸と口のオフセットを実測する）。
+  - StackChan が現在の首の角度を Quest に送り、Quest が補正する。
+  - ずれが小さければ補正しない。
+  - あわせて要検証（実機）: yaw / pitch の符号（右が +、上が +）と、QR の向き（面の +Z が StackChan の正面か）の対応、追従の遅れとサーボ音。
 - ファームの書込み: ESP-IDF 5.5.x の環境が必要。

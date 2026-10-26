@@ -75,6 +75,14 @@ namespace RikuK0j1ma.RaisingStackChan.Context
 
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
 
+            // StackChan turns its neck toward the headset while connected (#26).
+#if UNITY_EDITOR || UNITY_ANDROID
+            if (!RikuK0j1ma.RaisingStackChan.Platform.Meta.MetaPlatformInstaller.TryRegisterHeadPoseProvider(builder))
+#endif
+                builder.Register<NullHeadPoseProvider>(Lifetime.Singleton).As<IHeadPoseProvider>();
+            builder.Register<HeadLookUseCase>(Lifetime.Singleton);
+            builder.RegisterEntryPoint<HeadLookEntryPoint>();
+
             // Development-only overrides (DebugTools) hook in here.
             MrSceneExtension.Invoke(builder);
         }
