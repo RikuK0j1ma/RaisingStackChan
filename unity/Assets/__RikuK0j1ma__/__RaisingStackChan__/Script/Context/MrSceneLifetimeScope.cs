@@ -20,6 +20,9 @@ namespace RikuK0j1ma.RaisingStackChan.Context
         [Tooltip("Optional. Defaults are used when unassigned.")]
         [SerializeField] private SphereConfig sphereConfig;
 
+        [Tooltip("Optional. Neck pivot and servo zero of StackChan. Defaults reproduce the old behaviour when unassigned.")]
+        [SerializeField] private StackChanRigConfig rigConfig;
+
         protected override void Configure(IContainerBuilder builder)
         {
             builder.RegisterInstance(eatConfig);
@@ -81,8 +84,11 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             if (!RikuK0j1ma.RaisingStackChan.Platform.Meta.MetaPlatformInstaller.TryRegisterHeadPoseProvider(builder))
 #endif
                 builder.Register<NullHeadPoseProvider>(Lifetime.Singleton).As<IHeadPoseProvider>();
+            builder.RegisterInstance(rigConfig != null ? rigConfig : ScriptableObject.CreateInstance<StackChanRigConfig>());
             builder.Register<HeadLookUseCase>(Lifetime.Singleton);
             builder.RegisterEntryPoint<HeadLookEntryPoint>();
+            // The "StackChan" object (neck frame) in the scene, with debug drawing in the editor / dev builds (#35).
+            builder.RegisterEntryPoint<StackChanRigEntryPoint>();
 
             // Development-only overrides (DebugTools) hook in here.
             MrSceneExtension.Invoke(builder);

@@ -6,17 +6,12 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
     public static class HeadLookMath
     {
         /// <summary>
-        /// Direction of <paramref name="headPosition"/> seen from the face, in degrees. The face's local +Z is taken as
-        /// its front and +Y as up (unverified on device, see docs/design.md). Yaw is + to the face's right,
-        /// pitch is + up; (0, 0) means the head is straight in front.
+        /// Direction of <paramref name="target"/> seen from the face center, in degrees (no neck offset, no corrections).
+        /// The face's local +Z is taken as its front and +Y as up. Yaw is + to the face's right, pitch is + up;
+        /// (0, 0) means the target is straight in front. Prefer <see cref="StackChanFrame"/>, which also models the neck.
         /// </summary>
-        public static void Compute(Pose facePose, Vector3 headPosition, out float yawDeg, out float pitchDeg)
-        {
-            Vector3 local = Quaternion.Inverse(facePose.rotation) * (headPosition - facePose.position);
-            float horizontal = Mathf.Sqrt(local.x * local.x + local.z * local.z);
-            yawDeg = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
-            pitchDeg = Mathf.Atan2(local.y, horizontal) * Mathf.Rad2Deg;
-        }
+        public static void Compute(Pose facePose, Vector3 target, out float yawDeg, out float pitchDeg)
+            => StackChanFrame.FromFace(facePose).Compute(target, out yawDeg, out pitchDeg);
 
         /// <summary>Wraps an angle into [-180, 180].</summary>
         public static float WrapDegrees(float deg) => Mathf.DeltaAngle(0f, deg);
