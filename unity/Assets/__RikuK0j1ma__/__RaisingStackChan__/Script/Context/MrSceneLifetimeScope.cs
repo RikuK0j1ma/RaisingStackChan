@@ -64,9 +64,25 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.Register<SetupGuideUseCase>(Lifetime.Singleton);
             builder.Register<RecalibrationService>(Lifetime.Singleton);
             builder.RegisterEntryPoint<SetupGuideEntryPoint>();
+
+            // Y button: QR <-> face (#27).
+#if UNITY_EDITOR || UNITY_ANDROID
+            RikuK0j1ma.RaisingStackChan.Platform.Meta.MetaPlatformInstaller.RegisterQrToggleInput(builder);
+#else
+            builder.Register<NullQrToggleInput>(Lifetime.Singleton).As<IQrToggleInput>();
+#endif
+            builder.RegisterEntryPoint<QrToggleEntryPoint>();
             builder.RegisterEntryPoint<DiagnosticsEntryPoint>();
 
             builder.RegisterEntryPoint<MrSceneEntryPoint>();
+
+            // StackChan turns its neck toward the headset while connected (#26).
+#if UNITY_EDITOR || UNITY_ANDROID
+            if (!RikuK0j1ma.RaisingStackChan.Platform.Meta.MetaPlatformInstaller.TryRegisterHeadPoseProvider(builder))
+#endif
+                builder.Register<NullHeadPoseProvider>(Lifetime.Singleton).As<IHeadPoseProvider>();
+            builder.Register<HeadLookUseCase>(Lifetime.Singleton);
+            builder.RegisterEntryPoint<HeadLookEntryPoint>();
 
             // Development-only overrides (DebugTools) hook in here.
             MrSceneExtension.Invoke(builder);

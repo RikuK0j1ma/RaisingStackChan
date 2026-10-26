@@ -51,6 +51,7 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
             public bool TrySetEndpointFromQr(string payload) => false;
             public UniTask ConnectAsync(CancellationToken ct) => UniTask.CompletedTask;
             public UniTask SendShowQrAsync(CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask SendHideQrAsync(CancellationToken ct) => UniTask.CompletedTask;
 
             public UniTask SendEmotionAsync(StackChanEmotion emotion, int durationMs, CancellationToken ct)
             {

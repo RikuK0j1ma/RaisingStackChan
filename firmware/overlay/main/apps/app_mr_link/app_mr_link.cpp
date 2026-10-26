@@ -35,22 +35,35 @@ void AppMrLink::onOpen()
 
     LvglLockGuard lock;
 
+    // The face goes first: the QR page is added later and covers it until a Quest connects
+    _face.create();
+
     // The token lives until reboot, so a QR shown again (re-calibration) keeps the same token
     static const std::string token = mr_link::Server::generateToken();
     auto& server = mr_link::GetServer();
 
-    // Log what arrives. The emotion / showQr features subscribe the same way.
+    // Log what arrives. The emotion / showQr / hideQr features subscribe the same way.
     // "emotion" messages and the Happy flash on connect are handled by EmotionController
     _emotion.attach(server);
+    // "look" messages steer the neck while following the headset
+    _neck.attach(server);
     // Re-calibration: Quest asks for the QR again
     _handler_ids.push_back(server.addMessageHandler("showQr", [](const ArduinoJson::JsonDocument&) {
         mclog::tagInfo("MOGUMOGU", "showQr");
         _qr.show();
     }));
-    // Quest connected: the QR is no longer needed, back to the face
+    // Y button toggle / QR read: Quest asks to go back to the face (the connection stays up)
+    _handler_ids.push_back(server.addMessageHandler("hideQr", [](const ArduinoJson::JsonDocument&) {
+        mclog::tagInfo("MOGUMOGU", "hideQr");
+        _qr.hide();
+    }));
+    // Quest connected: the QR is no longer needed, the face underneath shows.
+    // Disconnected: back to the QR (standby). A replaced client does not notify, so no flicker.
     _handler_ids.push_back(server.addConnectionHandler([](bool connected) {
         if (connected) {
             _qr.hide();
+        } else {
+            _qr.show();
         }
     }));
 
@@ -66,7 +79,7 @@ void AppMrLink::onOpen()
     _touch.attach(lv_screen_active());
 
     _button_quit = std::make_unique<Button>(lv_screen_active());
-    _button_quit->setAlign(LV_ALIGN_TOP_RIGHT);  // off the QR
+    _button_quit->setAlign(LV_ALIGN_TOP_RIGHT);  // off the QR and the face
     _button_quit->label().setText("QUIT");
     _button_quit->onClick().connect([this]() { close(); });
 }
@@ -111,6 +124,8 @@ void AppMrLink::onRunning()
     startServerIfReady();
     _qr.update();  // picks up a Wi-Fi address that arrives late
     _emotion.update();
+    // Follow the headset only while a client is connected and the QR is hidden (QR detection needs a still face)
+    _neck.setFollow(mr_link::GetServer().hasClient() && !_qr.isShown());
     _neck.update();
     if (_touch.consume() && !_qr.isShown()) {
         _qr.show();  // touch brings the QR back (re-calibration)
@@ -128,11 +143,13 @@ void AppMrLink::onClose()
     _handler_ids.clear();
     server.stop();
     _emotion.detach(server);
+    _neck.detach(server);
     _qr.hide();
     _neck.release();
     _wifi.stop();
 
     LvglLockGuard lock;
+    _face.destroy();
     _touch.detach();
     _button_quit.reset();
 }

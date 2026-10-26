@@ -28,5 +28,14 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
 
         UniTask SendEmotionAsync(StackChanEmotion emotion, int durationMs, CancellationToken ct);
         UniTask SendShowQrAsync(CancellationToken ct);
+
+        /// <summary>
+        /// Tells StackChan which way to turn its neck. Angles are degrees seen from the StackChan face:
+        /// yaw + is right, pitch + is up, (0, 0) is straight ahead. Throws when not connected.
+        /// </summary>
+        UniTask SendLookAsync(float yawDeg, float pitchDeg, CancellationToken ct);
+
+        /// <summary>Asks StackChan to hide the QR and go back to the face (hideQr). The connection stays up.</summary>
+        UniTask SendHideQrAsync(CancellationToken ct);
     }
 }
