@@ -45,6 +45,8 @@ void AppMrLink::onOpen()
     // Log what arrives. The emotion / showQr features subscribe the same way.
     // "emotion" messages and the Happy flash on connect are handled by EmotionController
     _emotion.attach(server);
+    // "look" messages steer the neck while following the headset
+    _neck.attach(server);
     // Re-calibration: Quest asks for the QR again
     _handler_ids.push_back(server.addMessageHandler("showQr", [](const ArduinoJson::JsonDocument&) {
         mclog::tagInfo("MOGUMOGU", "showQr");
@@ -117,6 +119,8 @@ void AppMrLink::onRunning()
     startServerIfReady();
     _qr.update();  // picks up a Wi-Fi address that arrives late
     _emotion.update();
+    // Follow the headset only while a client is connected and the QR is hidden (QR detection needs a still face)
+    _neck.setFollow(mr_link::GetServer().hasClient() && !_qr.isShown());
     _neck.update();
     if (_touch.consume() && !_qr.isShown()) {
         _qr.show();  // touch brings the QR back (re-calibration)
@@ -134,6 +138,7 @@ void AppMrLink::onClose()
     _handler_ids.clear();
     server.stop();
     _emotion.detach(server);
+    _neck.detach(server);
     _qr.hide();
     _neck.release();
     _wifi.stop();

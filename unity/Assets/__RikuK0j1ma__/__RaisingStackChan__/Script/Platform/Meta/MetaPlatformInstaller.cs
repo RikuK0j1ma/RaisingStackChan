@@ -25,5 +25,17 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
                 .AsSelf();
             return true;
         }
+
+        /// <summary>
+        /// Registers the OVRCameraRig head position as IHeadPoseProvider when the rig is in the scene.
+        /// Returns false (and registers nothing) otherwise, so the caller keeps its Null fallback.
+        /// </summary>
+        public static bool TryRegisterHeadPoseProvider(IContainerBuilder builder)
+        {
+            if (UnityEngine.Object.FindFirstObjectByType<OVRCameraRig>() == null) return false;
+
+            builder.Register<OvrHeadPoseProvider>(Lifetime.Singleton).As<IHeadPoseProvider>();
+            return true;
+        }
     }
 }

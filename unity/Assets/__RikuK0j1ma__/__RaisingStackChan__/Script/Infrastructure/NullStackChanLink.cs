@@ -29,5 +29,7 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
         }
 
         public UniTask SendShowQrAsync(CancellationToken ct) => UniTask.CompletedTask;
+
+        public UniTask SendLookAsync(float yawDeg, float pitchDeg, CancellationToken ct) => UniTask.CompletedTask;
     }
 }
