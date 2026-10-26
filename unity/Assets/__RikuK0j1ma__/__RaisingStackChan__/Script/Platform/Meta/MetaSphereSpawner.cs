@@ -84,6 +84,15 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             return false;
         }
 
+        public void GetActiveIds(List<int> results)
+        {
+            results.Clear();
+            foreach (var pair in spheres)
+            {
+                if (pair.Value.Transform != null) results.Add(pair.Key);
+            }
+        }
+
         public void Despawn(int id)
         {
             if (!spheres.TryGetValue(id, out var sphere)) return;

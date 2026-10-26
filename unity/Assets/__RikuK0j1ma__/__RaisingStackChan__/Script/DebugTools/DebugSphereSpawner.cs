@@ -46,6 +46,15 @@ namespace RikuK0j1ma.RaisingStackChan.DebugTools
             return false;
         }
 
+        public void GetActiveIds(List<int> results)
+        {
+            results.Clear();
+            foreach (var pair in spheres)
+            {
+                if (pair.Value != null) results.Add(pair.Key);
+            }
+        }
+
         public void Despawn(int id)
         {
             if (spheres.TryGetValue(id, out GameObject go))

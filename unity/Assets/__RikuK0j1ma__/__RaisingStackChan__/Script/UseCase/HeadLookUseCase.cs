@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -9,6 +10,7 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
     /// While connected, sends the direction from the StackChan face to the headset ("look") so StackChan turns its
     /// neck toward the player. Sends nothing while disconnected, while the QR is being shown (setup guide not in the
     /// Connected phase: first connect, recalibration), or while the face pose or headset is unknown.
+    /// While food spheres are out it looks at the one nearest to the mouth instead (see LookTargetSelector).
     /// Angles are low-pass filtered and sent at a limited rate. StackChan stops in place if "look" stops arriving,
     /// so it keeps sending at that rate even when the head is still.
     /// </summary>
@@ -24,6 +26,10 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         private readonly IStackChanPoseProvider pose;
         private readonly IHeadPoseProvider head;
         private readonly SetupGuideUseCase guide;
+        private readonly ISphereSpawner spheres;
+        private readonly List<int> ids = new List<int>();
+        private readonly List<LookCandidate> candidates = new List<LookCandidate>();
+        private int currentSphereId = LookTargetSelector.HeadsetId;
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
 
         private bool hasSmoothed;
@@ -33,8 +39,9 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         private bool sending;
 
         public HeadLookUseCase(IStackChanLink link, IStackChanPoseProvider pose, IHeadPoseProvider head,
-            SetupGuideUseCase guide)
+            SetupGuideUseCase guide, ISphereSpawner spheres)
         {
+            this.spheres = spheres;
             this.link = link;
             this.pose = pose;
             this.head = head;
@@ -94,8 +101,29 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
             if (!pose.TryGetFacePose(out Pose face)) return false;
             if (!head.TryGetHeadPosition(out Vector3 headPosition)) return false;
 
-            HeadLookMath.Compute(face, headPosition, out targetYaw, out targetPitch);
+            Vector3 lookAt = headPosition;
+            if (TrySelectSphere(face, out Vector3 spherePosition)) lookAt = spherePosition;
+
+            HeadLookMath.Compute(face, lookAt, out targetYaw, out targetPitch);
             return true;
+        }
+
+        /// <summary>Picks the food sphere to look at (nearest to the mouth, with hysteresis). False: look at the headset.</summary>
+        private bool TrySelectSphere(Pose face, out Vector3 position)
+        {
+            position = Vector3.zero;
+            Vector3 origin = pose.TryGetMouthPosition(out Vector3 mouth) ? mouth : face.position;
+
+            spheres.GetActiveIds(ids);
+            candidates.Clear();
+            foreach (int id in ids)
+            {
+                if (spheres.TryGetPosition(id, out Vector3 p)) candidates.Add(new LookCandidate(id, p));
+            }
+
+            currentSphereId = LookTargetSelector.Select(origin, candidates, currentSphereId);
+            if (currentSphereId == LookTargetSelector.HeadsetId) return false;
+            return spheres.TryGetPosition(currentSphereId, out position);
         }
 
         private async UniTaskVoid SendAsync(float yawDeg, float pitchDeg)
