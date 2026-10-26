@@ -28,6 +28,7 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
                 return id;
             }
             public bool TryGetPosition(int id, out Vector3 position) => Spheres.TryGetValue(id, out position);
+            public void GetActiveIds(List<int> results) { results.Clear(); results.AddRange(Spheres.Keys); }
             public void Despawn(int id) => Spheres.Remove(id);
             public bool IsHeld(int id) => Held.Contains(id);
         }

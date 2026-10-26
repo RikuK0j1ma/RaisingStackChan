@@ -114,10 +114,11 @@ StackChan → Quest:
 1. 手で球体を出し、StackChan の顔へ持っていく。
 2. 口付近の半径内に一定時間入ると、球体が口へ吸い込まれて縮み、効果音とともに消える。
 3. StackChan が喜び顔（Happy）になり、数秒後に通常顔へ戻る。
+4. 球体が出ている間、StackChan は顔（口）に一番近い球体の方を向く（手で持っている球体も対象）。複数あるときは、新しい球体が今の向く先より 10% かつ 3 cm 以上近いときだけ切り替える（行ったり来たりの防止）。食べて消えたら次に近い球体へ、なくなればプレイヤーへ戻る。
 
 ### 首の追従
 
-接続中（QR を隠している間）は、StackChan が首を動かしてヘッドセットの方を向き続ける。プレイヤーが動けば首が追従する。切断したら正面に戻る。QR を表示している間は、QR の検出を安定させるため正面に固定する。
+接続中（QR を隠している間）は、StackChan が首を動かしてヘッドセットの方を向き続ける（球体が出ている間は、上記「遊ぶ」のとおり一番近い球体を向く）。プレイヤーが動けば首が追従する。切断したら正面に戻る。QR を表示している間は、QR の検出を安定させるため正面に固定する。
 
 ### 位置がずれたとき
 
@@ -138,7 +139,7 @@ Quest の左コントローラーの **Y ボタン**で、StackChan の QR と�
 層構造は [CLAUDE.md](../CLAUDE.md) を参照。
 
 - Entity: `EatConfig`（食べる半径、保持時間）、`StackChanEmotion`
-- UseCase: `CalibrateStackChanUseCase`（QR 検出 → 位置確定 → 保存）、`FeedSphereUseCase`（距離判定 → 消滅 → 感情送信）、`HeadLookUseCase`（顔とヘッドセットの位置から yaw / pitch を計算して `look` を送る。平滑化と送信レート制限つき）、インターフェース `IStackChanLink` / `IStackChanPoseProvider` / `IHeadPoseProvider` / `ISphereSpawner`
+- UseCase: `CalibrateStackChanUseCase`（QR 検出 → 位置確定 → 保存）、`FeedSphereUseCase`（距離判定 → 消滅 → 感情送信）、`HeadLookUseCase`（顔と、一番近い球体またはヘッドセットの位置から yaw / pitch を計算して `look` を送る。平滑化と送信レート制限つき）、`LookTargetSelector`（向く先の選択。純粋計算）、インターフェース `IStackChanLink` / `IStackChanPoseProvider` / `IHeadPoseProvider` / `ISphereSpawner`
 - Infrastructure: WebSocket 実装、アンカー永続化、Null 実装（エディタ用）
 - Platform.Meta: QR 検出、Passthrough 設定、ヘッドセット位置（`OvrHeadPoseProvider`、`OVRCameraRig` の centerEye）
 - DebugTools: StackChan 無しで動かすための疑似 Link と疑似位置

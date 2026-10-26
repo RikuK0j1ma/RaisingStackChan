@@ -16,6 +16,8 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
             return false;
         }
 
+        public void GetActiveIds(System.Collections.Generic.List<int> results) => results.Clear();
+
         public void Despawn(int id) { }
 
         public bool IsHeld(int id) => false;
