@@ -148,6 +148,26 @@ Quest の左コントローラーの **Y ボタン**で、StackChan の QR と�
 
 `firmware/overlay/main/apps/app_mr_link/` に自作アプリを置く。`mr_link_neck.{h,cpp}`（`NeckLock`）が首を持つ。MOGUMOGU を開いている間は `Motion::setModifyLock(true)` で `idle_motion` などを無効にする。QR 表示中と切断中は正面に固定し、接続中で QR を隠している間は `look` を受けて首を追従させる（上記「look」）。閉じるときに元のロック状態へ戻す。ビルド方法は [firmware/README.md](../firmware/README.md)。
 
+## StackChan の座標系
+
+StackChan がヘッドセットやご飯を見る向きは、すべて Unity が計算する。ファームは、受け取った角度を動かすだけにする（方向の計算をしない）。向きがずれたときに、「Unity の前提が悪いのか」を切り分けられるよう、StackChan の座標系をシーンの中に明示する。
+
+- **原点（`Pivot`）:** 首の上下の軸（ピッチ軸）の位置。縦の首の軸（ヨー軸）はこの点を通ると考える。QR の中心（= 顔の中心）からのオフセット（`PivotLocalOffset`、QR の向きで測る）で決める。
+- **向き（`Rotation`）:** サーボが yaw 0 度、pitch 0 度のときの向き。QR の向き（+Z が顔の正面、+Y が上と仮定）に、`YawZeroOffsetDeg`（右が +）と `PitchZeroOffsetDeg`（上が +）を加えたもの。
+- **角度:** 対象の位置を、この座標系で見たときの方向。yaw は右が +、pitch は上が +。`InvertYaw` / `InvertPitch` で符号を反転できる。この角度がそのまま `look` で送られる。
+- 設定は `StackChanRigConfig`（ScriptableObject）。`MrSceneLifetimeScope` の `Rig Config` に割り当てる（空なら初期値）。初期値は、オフセット 0、補正 0、反転なし。これは、顔の中心から見た方向を、そのまま送る従来の動きと同じ。
+- 計算は `StackChanFrame`（UseCase、純粋な計算）。シーンには `StackChan` という GameObject があり、位置と向きがこの座標系に合っている（顔の位置が分かっている間）。エディタと開発ビルド（`RSC_DEVELOPMENT`）では、この上に軸（X 赤、Y 緑、Z 青）、首の軸の点（白い球）、見ている方向（黄色の線）を表示する。
+
+### 実測と調整
+
+次を測って `StackChanRigConfig` に入れる。表示を見ながら、実機とずれていないか確かめる。
+
+1. **`PivotLocalOffset`:** QR の中心から、首の軸までの位置。Z は、顔の正面（QR の面の法線）方向の距離。顔より後ろなら負（QR の +Z が正面だと仮定）。Y は、QR の中心から、頭の中の上下に振る軸までの高さ。X は左右のずれ。
+2. **`YawZeroOffsetDeg` / `PitchZeroOffsetDeg`:** 首を正面（サーボ 0 度）にしたとき、QR の法線と、顔が実際に向いている方向のずれ。
+3. **`InvertYaw` / `InvertPitch`:** 首が逆に回るときに反転する。ファームの `kYawSign`（仮の補正、現在 +1）と二重にならないよう、調整が済んだら、ファームの `kYawSign` を外して、角度をそのまま使うようにする（ファームの書き込みと Quest アプリの再ビルドを同時に行う）。
+
+近距離（ご飯）のずれは、主にオフセット（1）の誤りで、遠距離（プレイヤー）のずれは、主に補正（2）の誤りで出る。
+
 ## リスクと要検証
 
 - QR 検出 API（調査済み）: Meta XR SDK 207.0.1 の MRUK に QR トラッキングがある（`MRUK.SceneSettings.TrackerConfiguration.QRCodeTrackingEnabled`、`MRUKTrackable.MarkerPayloadString`、`MRUK.QRCodeTrackingSupported`）。これを採用し、Passthrough Camera API + ZXing は不要（`MrukQrStackChanPoseProvider`）。

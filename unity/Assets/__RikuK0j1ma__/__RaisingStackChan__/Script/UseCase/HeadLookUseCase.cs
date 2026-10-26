@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using RikuK0j1ma.RaisingStackChan.Entity;
 using UnityEngine;
 
 namespace RikuK0j1ma.RaisingStackChan.UseCase
@@ -27,6 +28,7 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         private readonly IHeadPoseProvider head;
         private readonly SetupGuideUseCase guide;
         private readonly ISphereSpawner spheres;
+        private readonly StackChanRigConfig rig;
         private readonly List<int> ids = new List<int>();
         private readonly List<LookCandidate> candidates = new List<LookCandidate>();
         private int currentSphereId = LookTargetSelector.HeadsetId;
@@ -39,8 +41,9 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         private bool sending;
 
         public HeadLookUseCase(IStackChanLink link, IStackChanPoseProvider pose, IHeadPoseProvider head,
-            SetupGuideUseCase guide, ISphereSpawner spheres)
+            SetupGuideUseCase guide, ISphereSpawner spheres, StackChanRigConfig rig)
         {
+            this.rig = rig;
             this.spheres = spheres;
             this.link = link;
             this.pose = pose;
@@ -55,6 +58,25 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
         public float LastYawDeg => yaw;
 
         public float LastPitchDeg => pitch;
+
+        /// <summary>What StackChan is looking at (world position) while <see cref="IsActive"/>, for the scene view.</summary>
+        public Vector3 LastLookAt { get; private set; }
+
+        /// <summary>
+        /// StackChan's frame (neck pivot and zero direction) from the face pose, shown by the scene view.
+        /// False while the face pose is unknown.
+        /// </summary>
+        public bool TryGetFrame(out StackChanFrame frame)
+        {
+            if (pose.TryGetFacePose(out Pose face))
+            {
+                frame = StackChanFrame.From(face, rig);
+                return true;
+            }
+
+            frame = default;
+            return false;
+        }
 
         /// <summary>Call every frame.</summary>
         public void Tick(float deltaTime)
@@ -104,7 +126,8 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
             Vector3 lookAt = headPosition;
             if (TrySelectSphere(face, out Vector3 spherePosition)) lookAt = spherePosition;
 
-            HeadLookMath.Compute(face, lookAt, out targetYaw, out targetPitch);
+            LastLookAt = lookAt;
+            StackChanFrame.From(face, rig).Compute(lookAt, out targetYaw, out targetPitch);
             return true;
         }
 
