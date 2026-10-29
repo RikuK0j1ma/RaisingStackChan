@@ -37,6 +37,8 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
 
         private OVRCameraRig rig;
         private readonly OVRHand[] hands = new OVRHand[2]; // 0 = left, 1 = right
+        private readonly OVRSkeleton[] handSkeletons = new OVRSkeleton[2];
+        private readonly Transform[] pinchPivots = new Transform[2];
         private readonly bool[] prevHandSpawn = new bool[2];
         private float nextHandFindTime;
 
@@ -273,9 +275,48 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         private void UpdateHandHold(int slot, int handIndex)
         {
             var hand = hands[handIndex];
-            var ok = hand != null && hand.IsTracked && hand.HandConfidence == OVRHand.TrackingConfidence.High;
-            var pivot = ok ? (hand.IsPointerPoseValid && hand.PointerPose != null ? hand.PointerPose : hand.transform) : null;
-            UpdateHold(slot, pivot, ok && hand.GetFingerIsPinching(OVRHand.HandFinger.Index));
+            var ok = hand != null && hand.IsTracked;
+            var pivot = ok ? GetPinchPivot(handIndex) : null;
+            UpdateHold(slot, pivot, ok && pivot != null && hand.GetFingerIsPinching(OVRHand.HandFinger.Index));
+        }
+
+        /// <summary>
+        /// The pinch point of a hand: the middle of the thumb tip and the index tip, turned with the hand.
+        /// The pointer pose is a ray origin away from the fingers, so it is only the fallback (no skeleton yet).
+        /// The same point places a spawned food and grabs it, so both agree.
+        /// </summary>
+        private Transform GetPinchPivot(int handIndex)
+        {
+            var hand = hands[handIndex];
+            if (hand == null) return null;
+
+            if (handSkeletons[handIndex] == null) handSkeletons[handIndex] = hand.GetComponent<OVRSkeleton>();
+            var skeleton = handSkeletons[handIndex];
+            if (skeleton != null && skeleton.IsInitialized && skeleton.IsDataValid && skeleton.Bones != null)
+            {
+                Transform thumb = null;
+                Transform index = null;
+                foreach (var bone in skeleton.Bones)
+                {
+                    if (bone.Id == OVRSkeleton.BoneId.Hand_ThumbTip || bone.Id == OVRSkeleton.BoneId.XRHand_ThumbTip) thumb = bone.Transform;
+                    else if (bone.Id == OVRSkeleton.BoneId.Hand_IndexTip || bone.Id == OVRSkeleton.BoneId.XRHand_IndexTip) index = bone.Transform;
+                }
+
+                if (thumb != null && index != null)
+                {
+                    if (pinchPivots[handIndex] == null)
+                    {
+                        EnsureRoot();
+                        pinchPivots[handIndex] = new GameObject("HandPinchPivot" + handIndex).transform;
+                        pinchPivots[handIndex].SetParent(root, false);
+                    }
+
+                    pinchPivots[handIndex].SetPositionAndRotation((thumb.position + index.position) * 0.5f, hand.transform.rotation);
+                    return pinchPivots[handIndex];
+                }
+            }
+
+            return hand.IsPointerPoseValid && hand.PointerPose != null ? hand.PointerPose : hand.transform;
         }
 
         /// <summary>
@@ -345,7 +386,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         private string SpawnFromHand(int index)
         {
             var hand = hands[index];
-            if (hand == null || !hand.IsTracked || hand.HandConfidence != OVRHand.TrackingConfidence.High)
+            if (hand == null || !hand.IsTracked)
             {
                 prevHandSpawn[index] = false;
                 return hand == null ? "no OVRHand" : "not tracked";
@@ -354,10 +395,8 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             var pinching = hand.GetFingerIsPinching(OVRHand.HandFinger.Middle);
             if (pinching && !prevHandSpawn[index])
             {
-                var position = hand.IsPointerPoseValid && hand.PointerPose != null
-                    ? hand.PointerPose.position
-                    : hand.transform.position;
-                Spawn(position);
+                var pivot = GetPinchPivot(index);
+                Spawn(pivot != null ? pivot.position : hand.transform.position);
             }
 
             prevHandSpawn[index] = pinching;
