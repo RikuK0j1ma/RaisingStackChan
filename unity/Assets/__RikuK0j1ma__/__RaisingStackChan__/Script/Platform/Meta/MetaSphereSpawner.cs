@@ -26,6 +26,8 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         private static readonly int[] BiteIds = BuildBiteIds();
         private static readonly int BiteCountId = Shader.PropertyToID("_BiteCount");
         private static readonly int MetersPerUnitId = Shader.PropertyToID("_MetersPerUnit");
+        private static readonly int MeatCenterId = Shader.PropertyToID("_MeatCenter");
+        private static readonly int MeatExtentsId = Shader.PropertyToID("_MeatExtents");
 
         private readonly SphereConfig config;
         private readonly Dictionary<int, Food> foods = new Dictionary<int, Food>();
@@ -554,6 +556,9 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             {
                 if (MeatMaterial == null) return;
                 MeatMaterial.SetFloat(MetersPerUnitId, metersPerUnit);
+                var bounds = Meat.localBounds;
+                MeatMaterial.SetVector(MeatCenterId, bounds.center);
+                MeatMaterial.SetVector(MeatExtentsId, bounds.extents);
                 for (var i = 0; i < Bites.Length; i++) MeatMaterial.SetVector(BiteIds[i], Bites[i]);
                 MeatMaterial.SetFloat(BiteCountId, BiteCount);
             }
