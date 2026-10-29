@@ -46,6 +46,24 @@ namespace RikuK0j1ma.RaisingStackChan.DebugTools
             return false;
         }
 
+        public bool TryGetEatDistance(int id, Vector3 point, out float distance)
+        {
+            if (TryGetPosition(id, out Vector3 position))
+            {
+                distance = Vector3.Distance(position, point);
+                return true;
+            }
+            distance = float.MaxValue;
+            return false;
+        }
+
+        /// <summary>A debug sphere is eaten whole by the first bite.</summary>
+        public bool Bite(int id, Vector3 mouth)
+        {
+            Despawn(id);
+            return true;
+        }
+
         public void GetActiveIds(List<int> results)
         {
             results.Clear();

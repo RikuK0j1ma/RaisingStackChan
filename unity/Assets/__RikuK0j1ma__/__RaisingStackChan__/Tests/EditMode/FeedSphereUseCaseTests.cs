@@ -16,6 +16,11 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
         {
             public readonly Dictionary<int, Vector3> Spheres = new Dictionary<int, Vector3>();
             public readonly HashSet<int> Held = new HashSet<int>();
+            public readonly Dictionary<int, int> Bites = new Dictionary<int, int>();
+
+            /// <summary>Bites a food takes before it is finished (and removed).</summary>
+            public int BitesToFinish = 1;
+
             private int next;
 
             public event Action<int> Spawned;
@@ -28,6 +33,28 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
                 return id;
             }
             public bool TryGetPosition(int id, out Vector3 position) => Spheres.TryGetValue(id, out position);
+
+            public bool TryGetEatDistance(int id, Vector3 point, out float distance)
+            {
+                if (Spheres.TryGetValue(id, out var position))
+                {
+                    distance = Vector3.Distance(position, point);
+                    return true;
+                }
+
+                distance = float.MaxValue;
+                return false;
+            }
+
+            public bool Bite(int id, Vector3 mouth)
+            {
+                Bites.TryGetValue(id, out var count);
+                Bites[id] = ++count;
+                if (count < BitesToFinish) return false;
+                Spheres.Remove(id);
+                return true;
+            }
+
             public void GetActiveIds(List<int> results) { results.Clear(); results.AddRange(Spheres.Keys); }
             public void Despawn(int id) => Spheres.Remove(id);
             public bool IsHeld(int id) => Held.Contains(id);
@@ -159,18 +186,43 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
         }
 
         [Test]
-        public void HeldSphere_IsNotEaten_AndResetsHold()
+        public void HeldFood_IsEaten_BecauseTheBoneIsHeldNotTheMeat()
         {
             var id = SpawnTracked(new Vector3(0.05f, 0f, 0f));
             spawner.Held.Add(id);
-            sut.Tick(5f);
-            Assert.IsTrue(spawner.Spheres.ContainsKey(id));
 
-            spawner.Held.Remove(id);
-            sut.Tick(0.4f);
-            Assert.IsTrue(spawner.Spheres.ContainsKey(id));
-            sut.Tick(0.2f);
+            sut.Tick(0.6f);
+
             Assert.IsFalse(spawner.Spheres.ContainsKey(id));
+            Assert.AreEqual(1, link.Sent.Count);
+        }
+
+        [Test]
+        public void MultipleBites_EachNeedsHoldSeconds_AndTheFoodStaysUntilTheLast()
+        {
+            spawner.BitesToFinish = 3;
+            var id = SpawnTracked(new Vector3(0.05f, 0f, 0f));
+
+            sut.Tick(0.6f);
+            Assert.AreEqual(1, spawner.Bites[id]);
+            Assert.IsTrue(spawner.Spheres.ContainsKey(id));
+            Assert.AreEqual(1, sut.TrackedCount);
+
+            sut.Tick(0.3f); // the next bite needs HoldSeconds again
+            Assert.AreEqual(1, spawner.Bites[id]);
+
+            sut.Tick(0.3f);
+            Assert.AreEqual(2, spawner.Bites[id]);
+
+            sut.Tick(0.6f);
+            Assert.AreEqual(3, spawner.Bites[id]);
+            Assert.IsFalse(spawner.Spheres.ContainsKey(id));
+            Assert.AreEqual(0, sut.TrackedCount);
+
+            // Satisfied and the effect and sound play on every bite, not only the last.
+            Assert.AreEqual(3, link.Sent.Count);
+            Assert.AreEqual(3, effect.Plays);
+            Assert.AreEqual(3, sound.Plays);
         }
 
         [Test]

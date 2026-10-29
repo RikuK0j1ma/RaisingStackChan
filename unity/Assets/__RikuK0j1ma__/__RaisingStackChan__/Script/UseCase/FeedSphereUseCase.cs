@@ -8,10 +8,12 @@ using UnityEngine;
 namespace RikuK0j1ma.RaisingStackChan.UseCase
 {
     /// <summary>
-    /// Decides when a sphere is eaten: it must stay within EatRadius of the mouth for HoldSeconds
-    /// while not grabbed. On eating, the sphere is despawned, the effect and sound play, and Satisfied is
-    /// sent to StackChan (only if connected right now; nothing is queued for a later reconnect).
-    /// Eating again while satisfied sends Satisfied again, which resets the duration on StackChan (extension).
+    /// Decides when the food is bitten: its edible part (the meat) must stay within EatRadius of the mouth for
+    /// HoldSeconds. The bone is usually still held by the player; that does not matter. Each bite takes a chunk
+    /// (ISphereSpawner.Bite), plays the effect and sound, and sends Satisfied to StackChan (only if connected
+    /// right now; nothing is queued for a later reconnect). The next bite needs another HoldSeconds.
+    /// When the spawner says the last bite was taken, the food is not judged any more.
+    /// Biting again while satisfied sends Satisfied again, which resets the duration on StackChan (extension).
     /// </summary>
     public sealed class FeedSphereUseCase : IDisposable
     {
@@ -75,13 +77,13 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
 
             foreach (var id in scratch)
             {
-                if (!spawner.TryGetPosition(id, out var position))
+                if (!spawner.TryGetEatDistance(id, mouth, out var distance))
                 {
-                    holds.Remove(id); // sphere is gone
+                    holds.Remove(id); // food is gone
                     continue;
                 }
 
-                if (spawner.IsHeld(id) || Vector3.Distance(position, mouth) > config.EatRadius)
+                if (distance > config.EatRadius)
                 {
                     holds[id] = 0f;
                     continue;
@@ -90,8 +92,8 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
                 var held = holds[id] + deltaTime;
                 if (held >= config.HoldSeconds)
                 {
-                    holds.Remove(id);
-                    Eat(id, position, mouth);
+                    holds[id] = 0f;
+                    Eat(id, mouth);
                 }
                 else
                 {
@@ -100,9 +102,11 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
             }
         }
 
-        private void Eat(int id, Vector3 position, Vector3 mouth)
+        private void Eat(int id, Vector3 mouth)
         {
-            spawner.Despawn(id);
+            spawner.TryGetPosition(id, out var position);
+            var finished = spawner.Bite(id, mouth);
+            if (finished) holds.Remove(id);
             sound.PlayEat();
             PlayEffectAsync(position, mouth).Forget();
 
