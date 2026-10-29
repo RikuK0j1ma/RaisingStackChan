@@ -2,7 +2,8 @@
 // - A fragment inside a bite is discarded, so a bite takes a chunk out of the meat.
 // - The mesh is two-sided. Looking through a bite you see the back faces of the shell, drawn as the inside of the meat
 //   (flesh color with a marbled pattern). The front faces near the cut get a lighter "cooked edge" color.
-// Bites are passed from script: _Bites[i].xyz is the center in object space, _Bites[i].w is the radius in meters.
+// Bites are passed from script as _Bite0.._Bite7: xyz is the center in object space, w is the radius in meters.
+// They are separate vectors in the material buffer (an array outside it is not filled when the SRP Batcher is used).
 // _MetersPerUnit converts object space units to meters (the lossy scale of the renderer).
 // Lighting is a fixed toon shade so the look does not depend on the scene lights (passthrough MR has none that fit).
 Shader "RaisingStackChan/MangaMeat"
@@ -19,6 +20,14 @@ Shader "RaisingStackChan/MangaMeat"
         _ShadeMin ("Darkest Shade", Range(0, 1)) = 0.6
         _MetersPerUnit ("Meters Per Unit", Float) = 1
         _BiteCount ("Bite Count", Float) = 0
+        [HideInInspector] _Bite0 ("Bite 0", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _Bite1 ("Bite 1", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _Bite2 ("Bite 2", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _Bite3 ("Bite 3", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _Bite4 ("Bite 4", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _Bite5 ("Bite 5", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _Bite6 ("Bite 6", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _Bite7 ("Bite 7", Vector) = (0, 0, 0, 0)
     }
 
     SubShader
@@ -59,9 +68,15 @@ Shader "RaisingStackChan/MangaMeat"
                 float _ShadeMin;
                 float _MetersPerUnit;
                 float _BiteCount;
+                float4 _Bite0;
+                float4 _Bite1;
+                float4 _Bite2;
+                float4 _Bite3;
+                float4 _Bite4;
+                float4 _Bite5;
+                float4 _Bite6;
+                float4 _Bite7;
             CBUFFER_END
-
-            float4 _Bites[8];
 
             struct Attributes
             {
@@ -127,14 +142,15 @@ Shader "RaisingStackChan/MangaMeat"
                 // Distance (m) inside the deepest bite. Positive means this point is carved away.
                 float cut = -1.0;
                 int count = (int)_BiteCount;
+                float4 bites[8] = { _Bite0, _Bite1, _Bite2, _Bite3, _Bite4, _Bite5, _Bite6, _Bite7 };
                 float rough = (ValueNoise(pm * 90.0) - 0.5) * 2.0;
                 [unroll]
                 for (int k = 0; k < 8; k++)
                 {
                     if (k < count)
                     {
-                        float d = distance(input.positionOS, _Bites[k].xyz) * _MetersPerUnit;
-                        float r = _Bites[k].w * (1.0 + rough * _EdgeNoise);
+                        float d = distance(input.positionOS, bites[k].xyz) * _MetersPerUnit;
+                        float r = bites[k].w * (1.0 + rough * _EdgeNoise);
                         cut = max(cut, r - d);
                     }
                 }

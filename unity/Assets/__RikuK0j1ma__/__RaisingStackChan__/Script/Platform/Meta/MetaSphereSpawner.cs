@@ -23,7 +23,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
     /// </summary>
     public sealed class MetaSphereSpawner : ISphereSpawner, ITickable, IDiagnosticsSource
     {
-        private static readonly int BitesId = Shader.PropertyToID("_Bites");
+        private static readonly int[] BiteIds = BuildBiteIds();
         private static readonly int BiteCountId = Shader.PropertyToID("_BiteCount");
         private static readonly int MetersPerUnitId = Shader.PropertyToID("_MetersPerUnit");
 
@@ -444,6 +444,13 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             root = new GameObject("Foods").transform;
         }
 
+        private static int[] BuildBiteIds()
+        {
+            var ids = new int[SphereConfig.MaxBiteCount];
+            for (var i = 0; i < ids.Length; i++) ids[i] = Shader.PropertyToID("_Bite" + i);
+            return ids;
+        }
+
         private static bool TryFindParts(GameObject go, out Renderer meat, out Renderer bone)
         {
             meat = null;
@@ -519,7 +526,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             {
                 if (MeatMaterial == null) return;
                 MeatMaterial.SetFloat(MetersPerUnitId, metersPerUnit);
-                MeatMaterial.SetVectorArray(BitesId, Bites);
+                for (var i = 0; i < Bites.Length; i++) MeatMaterial.SetVector(BiteIds[i], Bites[i]);
                 MeatMaterial.SetFloat(BiteCountId, BiteCount);
             }
 
