@@ -87,6 +87,9 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             builder.RegisterInstance(rigConfig != null ? rigConfig : ScriptableObject.CreateInstance<StackChanRigConfig>());
             builder.Register<HeadLookUseCase>(Lifetime.Singleton);
             builder.RegisterEntryPoint<HeadLookEntryPoint>();
+            // Face per state: Hungry / Needy / Neutral, sent when it changes (#37).
+            builder.Register<ExpressionUseCase>(Lifetime.Singleton);
+            builder.RegisterEntryPoint<ExpressionEntryPoint>();
             // The "StackChan" object (neck frame) in the scene, with debug drawing in the editor / dev builds (#35).
             builder.RegisterEntryPoint<StackChanRigEntryPoint>();
 

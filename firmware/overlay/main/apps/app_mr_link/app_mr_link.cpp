@@ -14,12 +14,15 @@
 using namespace mooncake;
 using namespace smooth_ui_toolkit::lvgl_cpp;
 
+LV_IMAGE_DECLARE(icon_mr_link);
+
 static std::unique_ptr<Button> _button_quit;
 static mr_link::Qr _qr;
 
 AppMrLink::AppMrLink()
 {
     setAppInfo().name = "MOGUMOGU";
+    setAppInfo().icon = (void*)&icon_mr_link;  // mr_link_icon.c
 }
 
 void AppMrLink::onCreate()

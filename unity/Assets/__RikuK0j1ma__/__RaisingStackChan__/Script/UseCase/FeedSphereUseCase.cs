@@ -9,9 +9,9 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
 {
     /// <summary>
     /// Decides when a sphere is eaten: it must stay within EatRadius of the mouth for HoldSeconds
-    /// while not grabbed. On eating, the sphere is despawned, the effect and sound play, and Happy is
+    /// while not grabbed. On eating, the sphere is despawned, the effect and sound play, and Satisfied is
     /// sent to StackChan (only if connected right now; nothing is queued for a later reconnect).
-    /// Eating again while happy sends Happy again, which resets the duration on StackChan (extension).
+    /// Eating again while satisfied sends Satisfied again, which resets the duration on StackChan (extension).
     /// </summary>
     public sealed class FeedSphereUseCase : IDisposable
     {
@@ -109,7 +109,7 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
             // Unconnected: effect only. Do not send after a later reconnect.
             if (link.State == StackChanConnectionState.Connected)
             {
-                SendHappyAsync().Forget();
+                SendSatisfiedAsync().Forget();
             }
         }
 
@@ -120,9 +120,9 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
             catch (Exception e) { Debug.LogException(e); }
         }
 
-        private async UniTaskVoid SendHappyAsync()
+        private async UniTaskVoid SendSatisfiedAsync()
         {
-            try { await link.SendEmotionAsync(StackChanEmotion.Happy, config.HappyDurationMs, cts.Token); }
+            try { await link.SendEmotionAsync(StackChanEmotion.Satisfied, config.HappyDurationMs, cts.Token); }
             catch (OperationCanceledException) { }
             catch (Exception e) { Debug.LogWarning($"[Feed] SendEmotion failed: {e.Message}"); }
         }
