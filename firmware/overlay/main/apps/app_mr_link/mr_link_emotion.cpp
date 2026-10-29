@@ -8,6 +8,7 @@
 #include <mooncake_log.h>
 #include <smooth_lvgl.hpp>
 #include <stackchan/stackchan.h>
+#include <cmath>
 #include <cstring>
 
 using namespace mr_link;
@@ -15,6 +16,11 @@ using namespace stackchan::avatar;
 
 static constexpr int kMaxDurationMs = 60000;
 static constexpr int kConnectedDurationMs = 1500;
+// Satisfied: chew (mouth opens and closes) for a moment, then settle into a smile.
+static constexpr int64_t kMunchUs = 1800 * 1000;
+static constexpr float kMunchHz = 3.0f;
+static constexpr int kMunchBase = 35;
+static constexpr int kMunchAmp = 30;
 static const char* _tag = "MOGUMOGU";
 
 static bool parseMood(const char* value, Mood& out)
@@ -128,6 +134,10 @@ void EmotionController::show(Mood mood)
             break;
     }
     avatar.setEmotion(emotion);
+    avatar.mouth().setWeight(0);
+
+    _shown = mood;
+    _munch_start_us = esp_timer_get_time();
 
     lv_obj_t* screen = lv_screen_active();
     switch (mood) {
@@ -135,15 +145,41 @@ void EmotionController::show(Mood mood)
             _decorator_ids.push_back(avatar.addDecorator(std::make_unique<DroolDecorator>(screen)));
             break;
         case Mood::Needy:
-            _decorator_ids.push_back(avatar.addDecorator(std::make_unique<ShyDecorator>(screen)));
+            // Worried drops on a sad face, no blush: clearly different from Satisfied.
+            _decorator_ids.push_back(avatar.addDecorator(std::make_unique<SweatDecorator>(screen)));
             break;
-        case Mood::Satisfied:
+        case Mood::Satisfied: {
             _decorator_ids.push_back(avatar.addDecorator(std::make_unique<HeartDecorator>(screen)));
+            auto left_heart = std::make_unique<HeartDecorator>(screen);
+            left_heart->setPosition(-100, -56);
+            _decorator_ids.push_back(avatar.addDecorator(std::move(left_heart)));
             _decorator_ids.push_back(avatar.addDecorator(std::make_unique<ShyDecorator>(screen)));
             break;
+        }
         default:
             break;
     }
+}
+
+void EmotionController::munch()
+{
+    const int64_t elapsed = esp_timer_get_time() - _munch_start_us;
+    const bool munching = _shown == Mood::Satisfied && elapsed < kMunchUs;
+    if (!munching && !_munching) {
+        return;
+    }
+    auto& sc = GetStackChan();
+    if (!sc.hasAvatar()) {
+        return;
+    }
+    LvglLockGuard lock;
+    if (munching) {
+        const float t = static_cast<float>(elapsed) / 1e6f;
+        sc.avatar().mouth().setWeight(kMunchBase + static_cast<int>(kMunchAmp * std::sin(6.2831853f * kMunchHz * t)));
+    } else {
+        sc.avatar().mouth().setWeight(0);
+    }
+    _munching = munching;
 }
 
 void EmotionController::update()
@@ -163,6 +199,7 @@ void EmotionController::update()
 
     const bool timed_out = _reverting && esp_timer_get_time() >= _revert_at_us;
     if (!has_request && !timed_out) {
+        munch();
         return;
     }
 

@@ -13,7 +13,7 @@ namespace RikuK0j1ma.RaisingStackChan.Entity
         [SerializeField, Min(0f)] private float holdSeconds = 0.5f;
 
         [Tooltip("How long StackChan keeps the happy face (ms).")]
-        [SerializeField, Min(0)] private int happyDurationMs = 3000;
+        [SerializeField, Min(0)] private int happyDurationMs = 5000;
 
         [Tooltip("Mouth position in the face local space (m), relative to the face center (= QR center). Placeholder until measured on the device.")]
         [SerializeField] private Vector3 mouthLocalOffset = new Vector3(0f, -0.02f, 0f);

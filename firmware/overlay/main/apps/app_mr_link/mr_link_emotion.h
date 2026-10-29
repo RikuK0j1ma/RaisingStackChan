@@ -21,8 +21,8 @@ enum class Mood : int {
     Doubt,
     Sleepy,
     Hungry,     // chasing food: excited face with drool
-    Needy,      // chasing the player: begging face with blush
-    Satisfied,  // just ate: happy face with hearts
+    Needy,      // chasing the player: sad face with worried drops
+    Satisfied,  // just ate: chews, then a happy face with hearts
 };
 
 /**
@@ -48,6 +48,8 @@ private:
     /** Set emotion and decorators for a mood. Caller holds the LVGL lock. */
     void show(Mood mood);
     void clearDecorators();
+    /** Chew animation right after a Satisfied face is shown. Caller is the main task. */
+    void munch();
 
     std::vector<int> _handler_ids;
 
@@ -60,6 +62,9 @@ private:
     Mood _base = Mood::Neutral;
     bool _reverting = false;
     int64_t _revert_at_us = 0;
+    Mood _shown = Mood::Neutral;
+    int64_t _munch_start_us = 0;
+    bool _munching = false;
     std::vector<int> _decorator_ids;
 };
 
