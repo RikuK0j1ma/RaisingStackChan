@@ -29,7 +29,7 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
 
         /// <summary>
         /// Takes one bite at the part of the food nearest to <paramref name="mouth"/>.
-        /// Returns true when that was the last bite: the food is finished and removes itself shortly.
+        /// Returns true when that was the last bite: the meat is finished; the bone stays.
         /// </summary>
         bool Bite(int id, Vector3 mouth);
 
