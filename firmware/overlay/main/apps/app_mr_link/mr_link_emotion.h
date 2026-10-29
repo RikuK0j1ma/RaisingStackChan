@@ -54,9 +54,13 @@ private:
     std::vector<int> _handler_ids;
 
     std::mutex _mutex;  // guards the request below
-    bool _has_request = false;
-    int _request_mood = 0;  // Mood as int
-    int _request_duration_ms = 0;
+    // Requests in arrival order. Keep all of them: "satisfied" is often followed by the next base mood
+    // within a frame, and the first must not be lost.
+    struct Request {
+        Mood mood;
+        int duration_ms;
+    };
+    std::vector<Request> _requests;
 
     // Main task only
     Mood _base = Mood::Neutral;

@@ -58,9 +58,7 @@ void EmotionController::attach(Server& server)
             duration = kMaxDurationMs;
         }
         std::lock_guard<std::mutex> lock(_mutex);
-        _has_request = true;
-        _request_mood = static_cast<int>(mood);
-        _request_duration_ms = duration;
+        _requests.push_back({mood, duration});
     }));
 
     // A client has just said hello: flash Happy so the user notices the link is up.
@@ -70,9 +68,7 @@ void EmotionController::attach(Server& server)
             return;
         }
         std::lock_guard<std::mutex> lock(_mutex);
-        _has_request = true;
-        _request_mood = static_cast<int>(Mood::Happy);
-        _request_duration_ms = kConnectedDurationMs;
+        _requests.push_back({Mood::Happy, kConnectedDurationMs});
     }));
 }
 
@@ -85,7 +81,7 @@ void EmotionController::detach(Server& server)
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
-        _has_request = false;
+        _requests.clear();
     }
     _base = Mood::Neutral;
     _reverting = false;
@@ -184,21 +180,14 @@ void EmotionController::munch()
 
 void EmotionController::update()
 {
-    bool has_request = false;
-    Mood mood = Mood::Neutral;
-    int duration_ms = 0;
+    std::vector<Request> requests;
     {
         std::lock_guard<std::mutex> lock(_mutex);
-        if (_has_request) {
-            has_request = true;
-            mood = static_cast<Mood>(_request_mood);
-            duration_ms = _request_duration_ms;
-            _has_request = false;
-        }
+        requests.swap(_requests);
     }
 
     const bool timed_out = _reverting && esp_timer_get_time() >= _revert_at_us;
-    if (!has_request && !timed_out) {
+    if (requests.empty() && !timed_out) {
         munch();
         return;
     }
@@ -209,20 +198,21 @@ void EmotionController::update()
     }
 
     LvglLockGuard lock;
-    if (has_request) {
-        if (duration_ms > 0 && mood != Mood::Neutral) {
+    for (const auto& request : requests) {
+        if (request.duration_ms > 0 && request.mood != Mood::Neutral) {
             // Timed: show it now and come back to the base mood. A new timed one resets the timer.
-            show(mood);
+            show(request.mood);
             _reverting = true;
-            _revert_at_us = esp_timer_get_time() + static_cast<int64_t>(duration_ms) * 1000;
+            _revert_at_us = esp_timer_get_time() + static_cast<int64_t>(request.duration_ms) * 1000;
         } else {
             // Base mood: shown now unless a timed one is still showing.
-            _base = mood;
+            _base = request.mood;
             if (!_reverting) {
-                show(mood);
+                show(request.mood);
             }
         }
-    } else {
+    }
+    if (requests.empty()) {
         _reverting = false;
         show(_base);
     }
