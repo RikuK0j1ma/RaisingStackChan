@@ -16,9 +16,17 @@ namespace RikuK0j1ma.RaisingStackChan.Infrastructure
             return false;
         }
 
+        public bool TryGetEatDistance(int id, Vector3 point, out float distance)
+        {
+            distance = float.MaxValue;
+            return false;
+        }
+
         public void GetActiveIds(System.Collections.Generic.List<int> results) => results.Clear();
 
         public void Despawn(int id) { }
+
+        public bool Bite(int id, Vector3 mouth) => false;
 
         public bool IsHeld(int id) => false;
     }

@@ -6,21 +6,29 @@ using RikuK0j1ma.RaisingStackChan.UseCase;
 using UnityEngine;
 using VContainer.Unity;
 using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
 {
     /// <summary>
-    /// Food spheres on Meta Quest. Spawning input and the spheres themselves. A sphere is an instance of SphereConfig.Prefab
-    /// (no physics, no Interaction SDK component); holding is done by this class:
+    /// The food (manga meat) on Meta Quest: spawning input and the meat itself. A food is an instance of
+    /// SphereConfig.Prefab (the MangaMeat model) with a Meat and a Bone mesh. No physics, no Interaction SDK component.
     /// - Spawn: A / X button (controller) or middle finger pinch (hand tracking), at the hand position.
-    /// - Grab: grip button (controller) or index finger pinch (hand). The nearest sphere within reach follows the hand
-    ///   and stays where it is let go.
-    /// Spheres too far from the headset are recalled.
+    ///   The bone end is placed at the hand, so it can be grabbed right away.
+    /// - Grab: grip button (controller) or index finger pinch (hand). Only the bone can be grabbed; the meat follows.
+    ///   The food keeps its pose relative to the hand, and stays where it is let go.
+    /// - Eat: StackChan eats the meat, not the bone. Each <see cref="Bite"/> carves a hole out of the meat
+    ///   (see the MangaMeat shader); the last bite takes the rest and the food removes itself.
+    /// Foods too far from the headset are recalled.
     /// </summary>
     public sealed class MetaSphereSpawner : ISphereSpawner, ITickable, IDiagnosticsSource
     {
+        private static readonly int BitesId = Shader.PropertyToID("_Bites");
+        private static readonly int BiteCountId = Shader.PropertyToID("_BiteCount");
+        private static readonly int MetersPerUnitId = Shader.PropertyToID("_MetersPerUnit");
+
         private readonly SphereConfig config;
-        private readonly Dictionary<int, Sphere> spheres = new Dictionary<int, Sphere>();
+        private readonly Dictionary<int, Food> foods = new Dictionary<int, Food>();
         private readonly List<int> scratch = new List<int>();
         private readonly StringBuilder sb = new StringBuilder();
 
@@ -32,12 +40,18 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         private readonly bool[] prevHandSpawn = new bool[2];
         private float nextHandFindTime;
 
-        private const float GrabReach = 0.15f;
         private const float SpawnForward = 0.1f;
 
+        /// <summary>Seconds the finished food stays (the last bite is visible) before it is removed.</summary>
+        private const float FinishDelay = 0.5f;
+
+        /// <summary>The bone end is placed this fraction of the half length from the bone center, at the hand.</summary>
+        private const float SpawnGripFraction = 0.85f;
+
         // Hold slots: 0 = left controller, 1 = right controller, 2 = left hand, 3 = right hand.
-        private readonly Sphere[] holding = new Sphere[4];
-        private readonly Vector3[] holdOffset = new Vector3[4];
+        private readonly Food[] holding = new Food[4];
+        private readonly Vector3[] holdOffsetPosition = new Vector3[4];
+        private readonly Quaternion[] holdOffsetRotation = new Quaternion[4];
         private readonly bool[] prevPressed = new bool[4];
 
         private string controllerStatus = "";
@@ -53,30 +67,54 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         public int Spawn(Vector3 position)
         {
             EnsureRoot();
-            while (spheres.Count >= config.MaxCount && RemoveOldestFree()) { }
-            if (spheres.Count >= config.MaxCount) return -1;
+            while (foods.Count >= config.MaxCount && RemoveOldestFree()) { }
+            if (foods.Count >= config.MaxCount) return -1;
 
             if (config.Prefab == null)
             {
-                Debug.LogError("[Sphere] SphereConfig has no Prefab assigned.");
+                Debug.LogError("[Food] SphereConfig has no Prefab assigned.");
                 return -1;
             }
 
-            var go = Object.Instantiate(config.Prefab, position, Quaternion.identity, root);
-            go.name = "FoodSphere";
-            go.transform.localScale = Vector3.one * (config.Radius * 2f);
+            var go = Object.Instantiate(config.Prefab, root);
+            go.name = "MangaMeat";
+            go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
 
-            var id = nextId++;
-            spheres[id] = new Sphere(id, go.transform);
-            Spawned?.Invoke(id);
-            return id;
+            if (!TryFindParts(go, out var meat, out var bone))
+            {
+                Debug.LogError("[Food] The model needs two mesh children named Meat and Bone.");
+                Object.Destroy(go);
+                return -1;
+            }
+
+            // Scale so the bone is BoneLength long, whatever scale the model was imported with.
+            var size = bone.bounds.size;
+            var axis = size.x >= size.y && size.x >= size.z ? 0 : size.y >= size.z ? 1 : 2;
+            var scale = config.BoneLength / Mathf.Max(size[axis], 1e-4f);
+            go.transform.localScale = Vector3.one * scale;
+
+            // Lay the bone along the headset's right, so the meat hangs on it in front of the player.
+            var axisVector = Vector3.zero;
+            axisVector[axis] = 1f;
+            var yaw = Quaternion.Euler(0f, HeadYaw(), 0f);
+            go.transform.rotation = yaw * Quaternion.FromToRotation(axisVector, Vector3.right);
+
+            // Put the bone end at the requested position (the hand).
+            var gripEnd = bone.bounds.center + yaw * Vector3.right * (config.BoneLength * 0.5f * SpawnGripFraction);
+            go.transform.position += position - gripEnd;
+
+            var food = new Food(nextId++, go.transform, meat, bone);
+            PrepareMaterials(food);
+            foods[food.Id] = food;
+            Spawned?.Invoke(food.Id);
+            return food.Id;
         }
 
         public bool TryGetPosition(int id, out Vector3 position)
         {
-            if (TryGet(id, out var sphere))
+            if (TryGet(id, out var food))
             {
-                position = sphere.Transform.position;
+                position = food.Meat.bounds.center;
                 return true;
             }
 
@@ -84,23 +122,71 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             return false;
         }
 
+        public bool TryGetEatDistance(int id, Vector3 point, out float distance)
+        {
+            if (TryGet(id, out var food))
+            {
+                distance = DistanceToRenderer(food.Meat, point, out _);
+                return true;
+            }
+
+            distance = float.MaxValue;
+            return false;
+        }
+
         public void GetActiveIds(List<int> results)
         {
             results.Clear();
-            foreach (var pair in spheres)
+            foreach (var pair in foods)
             {
-                if (pair.Value.Transform != null) results.Add(pair.Key);
+                if (pair.Value.Root != null && !pair.Value.Finished) results.Add(pair.Key);
             }
         }
 
         public void Despawn(int id)
         {
-            if (!spheres.TryGetValue(id, out var sphere)) return;
-            spheres.Remove(id);
-            if (sphere.Transform != null) Object.Destroy(sphere.Transform.gameObject);
+            if (!foods.TryGetValue(id, out var food)) return;
+            foods.Remove(id);
+            food.Destroy();
         }
 
-        public bool IsHeld(int id) => TryGet(id, out var sphere) && sphere.IsHeld;
+        public bool Bite(int id, Vector3 mouth)
+        {
+            if (!TryGet(id, out var food)) return false;
+
+            var meatTransform = food.Meat.transform;
+            var metersPerUnit = Mathf.Max(meatTransform.lossyScale.x, 1e-5f);
+            var localBounds = food.Meat.localBounds;
+            var last = food.BiteCount + 1 >= config.BiteCount;
+
+            Vector3 localCenter;
+            float radius;
+            if (last)
+            {
+                // The last bite takes everything that is left.
+                localCenter = localBounds.center;
+                radius = localBounds.extents.magnitude * metersPerUnit * 1.1f;
+            }
+            else
+            {
+                // Bite at the surface point nearest to the mouth, a little inside, with some randomness.
+                DistanceToRenderer(food.Meat, mouth, out var closest);
+                var inside = Vector3.MoveTowards(closest, food.Meat.bounds.center, config.BiteRadius * 0.4f);
+                inside += Random.insideUnitSphere * (config.BiteRadius * 0.3f);
+                localCenter = meatTransform.InverseTransformPoint(inside);
+                radius = config.BiteRadius * Random.Range(0.85f, 1.15f);
+            }
+
+            food.Bites[food.BiteCount++] = new Vector4(localCenter.x, localCenter.y, localCenter.z, radius);
+            food.ApplyBites(metersPerUnit);
+
+            if (!last) return false;
+            food.Finished = true;
+            food.RemoveAt = Time.time + FinishDelay;
+            return true;
+        }
+
+        public bool IsHeld(int id) => TryGet(id, out var food) && food.IsHeld;
 
         public void Tick()
         {
@@ -111,13 +197,13 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         public string DescribeStatus()
         {
             var held = 0;
-            foreach (var sphere in spheres.Values)
+            foreach (var food in foods.Values)
             {
-                if (sphere.Transform != null && sphere.IsHeld) held++;
+                if (food.Root != null && food.IsHeld) held++;
             }
 
             sb.Length = 0;
-            sb.AppendLine($"Spheres: {spheres.Count} (held {held})");
+            sb.AppendLine($"Food: {foods.Count} (held {held})");
             sb.AppendLine(controllerStatus);
             sb.Append(handStatus);
             return sb.ToString();
@@ -191,8 +277,8 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         }
 
         /// <summary>
-        /// One hold slot. On the press edge it picks up the nearest free sphere within reach, carries it while pressed
-        /// (keeping the grab offset) and lets go on release; the sphere stays put.
+        /// One hold slot. On the press edge it picks up the free food whose bone is nearest and within reach, carries it
+        /// while pressed (keeping the grab offset, rotation included) and lets go on release; the food stays put.
         /// </summary>
         private void UpdateHold(int slot, Transform pivot, bool pressed)
         {
@@ -200,7 +286,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             prevPressed[slot] = pressed;
 
             var held = holding[slot];
-            if (held != null && held.Transform == null) held = holding[slot] = null; // destroyed while held
+            if (held != null && held.Root == null) held = holding[slot] = null; // destroyed while held
             if (held != null && (!pressed || pivot == null))
             {
                 holding[slot] = null;
@@ -210,26 +296,29 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
 
             if (held != null)
             {
-                held.Transform.position = pivot.TransformPoint(holdOffset[slot]);
+                held.Root.SetPositionAndRotation(
+                    pivot.TransformPoint(holdOffsetPosition[slot]),
+                    pivot.rotation * holdOffsetRotation[slot]);
                 return;
             }
 
             if (!edge || pivot == null) return;
 
-            Sphere nearest = null;
-            var best = GrabReach * GrabReach;
-            foreach (var sphere in spheres.Values)
+            Food nearest = null;
+            var best = config.GrabReach;
+            foreach (var food in foods.Values)
             {
-                if (sphere.Transform == null || sphere.IsHeld) continue;
-                var d = (sphere.Transform.position - pivot.position).sqrMagnitude;
+                if (food.Root == null || food.IsHeld || food.Finished) continue;
+                var d = DistanceToRenderer(food.Bone, pivot.position, out _); // only the bone can be grabbed
                 if (d > best) continue;
                 best = d;
-                nearest = sphere;
+                nearest = food;
             }
 
             if (nearest == null) return;
             holding[slot] = nearest;
-            holdOffset[slot] = pivot.InverseTransformPoint(nearest.Transform.position);
+            holdOffsetPosition[slot] = pivot.InverseTransformPoint(nearest.Root.position);
+            holdOffsetRotation[slot] = Quaternion.Inverse(pivot.rotation) * nearest.Root.rotation;
             nearest.IsHeld = true;
         }
 
@@ -238,6 +327,16 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         {
             var cam = Camera.main;
             return cam != null ? cam.transform.position + cam.transform.forward * 0.5f : new Vector3(0f, 1.2f, 0.5f);
+        }
+
+        /// <summary>Heading of the headset (degrees around Y), 0 when there is no camera.</summary>
+        private static float HeadYaw()
+        {
+            var cam = Camera.main;
+            if (cam == null) return 0f;
+            var forward = cam.transform.forward;
+            forward.y = 0f;
+            return forward.sqrMagnitude < 1e-4f ? 0f : Quaternion.LookRotation(forward).eulerAngles.y;
         }
 
         /// <summary>Spawns on the start of a middle finger pinch. Returns a short status text.</summary>
@@ -277,53 +376,59 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             }
         }
 
-        /// <summary>Removes destroyed entries and recalls free spheres that are too far away.</summary>
+        /// <summary>Removes destroyed entries and finished foods, and recalls free foods that are too far away.</summary>
         private void Sweep()
         {
-            if (spheres.Count == 0) return;
+            if (foods.Count == 0) return;
 
             var cam = Camera.main;
             var origin = cam != null ? cam.transform.position : Vector3.zero;
             var limit = config.RecallDistance;
             scratch.Clear();
-            foreach (var pair in spheres)
+            foreach (var pair in foods)
             {
-                var sphere = pair.Value;
-                if (sphere.Transform == null) { scratch.Add(pair.Key); continue; }
-                if (sphere.IsHeld) continue;
-                if ((sphere.Transform.position - origin).sqrMagnitude > limit * limit) scratch.Add(pair.Key);
+                var food = pair.Value;
+                if (food.Root == null) { scratch.Add(pair.Key); continue; }
+                if (food.Finished)
+                {
+                    if (Time.time >= food.RemoveAt) scratch.Add(pair.Key);
+                    continue;
+                }
+
+                if (food.IsHeld) continue;
+                if ((food.Root.position - origin).sqrMagnitude > limit * limit) scratch.Add(pair.Key);
             }
 
             foreach (var id in scratch) Despawn(id);
         }
 
-        private bool TryGet(int id, out Sphere sphere)
+        private bool TryGet(int id, out Food food)
         {
-            if (spheres.TryGetValue(id, out sphere) && sphere.Transform != null) return true;
-            sphere = null;
+            if (foods.TryGetValue(id, out food) && food.Root != null && !food.Finished) return true;
+            food = null;
             return false;
         }
 
-        /// <summary>Frees one slot: purges destroyed entries first, else removes the oldest free sphere.</summary>
+        /// <summary>Frees one slot: purges destroyed entries first, else removes the oldest free food.</summary>
         private bool RemoveOldestFree()
         {
             scratch.Clear();
-            foreach (var pair in spheres)
+            foreach (var pair in foods)
             {
-                if (pair.Value.Transform == null) scratch.Add(pair.Key);
+                if (pair.Value.Root == null) scratch.Add(pair.Key);
             }
 
             if (scratch.Count > 0)
             {
-                foreach (var id in scratch) spheres.Remove(id);
+                foreach (var id in scratch) foods.Remove(id);
                 return true;
             }
 
-            Sphere oldest = null;
-            foreach (var sphere in spheres.Values)
+            Food oldest = null;
+            foreach (var food in foods.Values)
             {
-                if (sphere.IsHeld) continue;
-                if (oldest == null || sphere.Order < oldest.Order) oldest = sphere;
+                if (food.IsHeld) continue;
+                if (oldest == null || food.Order < oldest.Order) oldest = food;
             }
 
             if (oldest == null) return false;
@@ -334,24 +439,92 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         private void EnsureRoot()
         {
             if (root != null) return;
-            root = new GameObject("FoodSpheres").transform;
+            root = new GameObject("Foods").transform;
         }
 
-        /// <summary>One food sphere. No physics: it is moved while held and stays where it was let go.</summary>
-        private sealed class Sphere
+        private static bool TryFindParts(GameObject go, out Renderer meat, out Renderer bone)
+        {
+            meat = null;
+            bone = null;
+            foreach (var renderer in go.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (renderer.name.IndexOf("meat", StringComparison.OrdinalIgnoreCase) >= 0) meat = renderer;
+                else if (renderer.name.IndexOf("bone", StringComparison.OrdinalIgnoreCase) >= 0) bone = renderer;
+            }
+
+            return meat != null && bone != null;
+        }
+
+        /// <summary>Gives the meat its own material copy (it holds the bites) and the bone the shared bone material.</summary>
+        private void PrepareMaterials(Food food)
+        {
+            if (config.MeatMaterial != null)
+            {
+                food.MeatMaterial = new Material(config.MeatMaterial);
+                SetAllMaterials(food.Meat, food.MeatMaterial);
+                food.ApplyBites(Mathf.Max(food.Meat.transform.lossyScale.x, 1e-5f));
+            }
+
+            if (config.BoneMaterial != null) SetAllMaterials(food.Bone, config.BoneMaterial);
+        }
+
+        private static void SetAllMaterials(Renderer renderer, Material material)
+        {
+            var materials = new Material[Mathf.Max(1, renderer.sharedMaterials.Length)];
+            for (var i = 0; i < materials.Length; i++) materials[i] = material;
+            renderer.sharedMaterials = materials;
+        }
+
+        /// <summary>
+        /// Distance (m) from a world point to the renderer's box (its local bounds, so tight when the model is rotated).
+        /// 0 when the point is inside. <paramref name="closest"/> is the nearest point of the box in world space.
+        /// </summary>
+        private static float DistanceToRenderer(Renderer renderer, Vector3 worldPoint, out Vector3 closest)
+        {
+            var t = renderer.transform;
+            var local = t.InverseTransformPoint(worldPoint);
+            closest = t.TransformPoint(renderer.localBounds.ClosestPoint(local));
+            return Vector3.Distance(worldPoint, closest);
+        }
+
+        /// <summary>One food. No physics: it is moved while held and stays where it was let go.</summary>
+        private sealed class Food
         {
             public readonly int Id;
-            public readonly Transform Transform;
+            public readonly Transform Root;
+            public readonly Renderer Meat;
+            public readonly Renderer Bone;
+            public readonly Vector4[] Bites = new Vector4[SphereConfig.MaxBiteCount];
 
+            public Material MeatMaterial;
+            public int BiteCount;
             public bool IsHeld;
+            public bool Finished;
+            public float RemoveAt;
 
             /// <summary>Creation order (the id is increasing), smaller is older.</summary>
             public int Order => Id;
 
-            public Sphere(int id, Transform transform)
+            public Food(int id, Transform root, Renderer meat, Renderer bone)
             {
                 Id = id;
-                Transform = transform;
+                Root = root;
+                Meat = meat;
+                Bone = bone;
+            }
+
+            public void ApplyBites(float metersPerUnit)
+            {
+                if (MeatMaterial == null) return;
+                MeatMaterial.SetFloat(MetersPerUnitId, metersPerUnit);
+                MeatMaterial.SetVectorArray(BitesId, Bites);
+                MeatMaterial.SetFloat(BiteCountId, BiteCount);
+            }
+
+            public void Destroy()
+            {
+                if (MeatMaterial != null) Object.Destroy(MeatMaterial);
+                if (Root != null) Object.Destroy(Root.gameObject);
             }
         }
     }

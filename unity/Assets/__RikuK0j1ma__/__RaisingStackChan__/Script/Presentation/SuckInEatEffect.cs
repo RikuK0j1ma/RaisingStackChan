@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace RikuK0j1ma.RaisingStackChan.Presentation
 {
-    /// <summary>Draws a temporary sphere that flies to the mouth while shrinking, then disappears.</summary>
+    /// <summary>Draws a temporary crumb (a small ball with the meat material) that flies to the mouth while shrinking.</summary>
     public sealed class SuckInEatEffect : IEatEffect
     {
         private const float Duration = 0.3f;
@@ -21,10 +21,11 @@ namespace RikuK0j1ma.RaisingStackChan.Presentation
 
         public async UniTask PlayAsync(Vector3 from, Vector3 mouth, CancellationToken ct)
         {
-            var startScale = config.Radius * 2f; // same diameter as the spawned sphere
+            var startScale = config.BiteRadius * 1.6f; // a bit bigger than the bite it came from
             var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             var col = go.GetComponent<Collider>();
             if (col != null) Object.Destroy(col);
+            if (config.MeatMaterial != null) go.GetComponent<Renderer>().sharedMaterial = config.MeatMaterial;
             var tr = go.transform;
             tr.position = from;
             tr.localScale = Vector3.one * startScale;
