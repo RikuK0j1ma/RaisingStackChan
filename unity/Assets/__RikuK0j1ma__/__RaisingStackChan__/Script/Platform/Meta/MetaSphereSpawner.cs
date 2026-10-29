@@ -18,7 +18,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
     /// - Grab: grip button (controller) or index finger pinch (hand). Only the bone can be grabbed; the meat follows.
     ///   The food keeps its pose relative to the hand, and stays where it is let go.
     /// - Eat: StackChan eats the meat, not the bone. Each <see cref="Bite"/> carves a hole out of the meat
-    ///   (see the MangaMeat shader); the last bite takes the rest and the food removes itself.
+    ///   (see the MangaMeat shader); the last bite takes the rest and only the bone is left (it stays and can still be grabbed).
     /// Foods too far from the headset are recalled.
     /// </summary>
     public sealed class MetaSphereSpawner : ISphereSpawner, ITickable, IDiagnosticsSource
@@ -43,9 +43,6 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         private float nextHandFindTime;
 
         private const float SpawnForward = 0.1f;
-
-        /// <summary>Seconds the finished food stays (the last bite is visible) before it is removed.</summary>
-        private const float FinishDelay = 0.5f;
 
         /// <summary>The bone end is placed this fraction of the half length from the bone center, at the hand.</summary>
         private const float SpawnGripFraction = 0.85f;
@@ -185,8 +182,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             food.ApplyBites(metersPerUnit);
 
             if (!last) return false;
-            food.Finished = true;
-            food.RemoveAt = Time.time + FinishDelay;
+            food.Finished = true; // only the bone is left; it stays and can still be grabbed
             return true;
         }
 
@@ -351,7 +347,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             var best = config.GrabReach;
             foreach (var food in foods.Values)
             {
-                if (food.Root == null || food.IsHeld || food.Finished) continue;
+                if (food.Root == null || food.IsHeld) continue;
                 var d = DistanceToRenderer(food.Bone, pivot.position, out _); // only the bone can be grabbed
                 if (d > best) continue;
                 best = d;
@@ -417,7 +413,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             }
         }
 
-        /// <summary>Removes destroyed entries and finished foods, and recalls free foods that are too far away.</summary>
+        /// <summary>Removes destroyed entries, and recalls free foods (bones left after a meal included) that are too far away.</summary>
         private void Sweep()
         {
             if (foods.Count == 0) return;
@@ -430,12 +426,6 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             {
                 var food = pair.Value;
                 if (food.Root == null) { scratch.Add(pair.Key); continue; }
-                if (food.Finished)
-                {
-                    if (Time.time >= food.RemoveAt) scratch.Add(pair.Key);
-                    continue;
-                }
-
                 if (food.IsHeld) continue;
                 if ((food.Root.position - origin).sqrMagnitude > limit * limit) scratch.Add(pair.Key);
             }
@@ -548,7 +538,6 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             public int BiteCount;
             public bool IsHeld;
             public bool Finished;
-            public float RemoveAt;
 
             /// <summary>Creation order (the id is increasing), smaller is older.</summary>
             public int Order => Id;
