@@ -59,10 +59,23 @@ Quest → StackChan:
 
 | type | 項目 | 説明 |
 |---|---|---|
-| `emotion` | `value`（`happy` ほか）、`durationMs`（省略時は StackChan 側の既定） | 表情を変える。`durationMs` 後に Neutral へ戻す |
+| `emotion` | `value`（下の表）、`durationMs`（省略時は 0） | 表情を変える。`durationMs` が正なら、その間だけ見せて、基本の表情へ戻す。0 以下なら、基本の表情として切り替える（タイマー中なら、終わってから） |
 | `showQr` | なし | QR を再表示する（再キャリブ） |
 | `look` | `yaw`（度、右が +）、`pitch`（度、上が +） | StackChan の顔の正面を 0 とした、ヘッドセットの方向。接続中、QR を隠している間だけ有効 |
 | `hideQr` | なし | QR を消して顔に戻す。接続は切らない |
+
+`emotion` の `value`:
+
+| value | 顔 | 使う場面 |
+|---|---|---|
+| `neutral` | 通常 | 見るものがない（基本の表情） |
+| `hungry` | 喜び顔＋よだれ | ご飯（球体）を追っている（基本の表情） |
+| `needy` | 悲しい顔＋ほお赤 | プレイヤーを追っている。構ってほしい（基本の表情） |
+| `satisfied` | 喜び顔＋ハート＋ほお赤 | ご飯を食べた直後（数秒だけ） |
+| `happy` | 喜び顔 | 接続した直後の挨拶（ファームが自分で出す） |
+| `angry` `sad` `doubt` `sleepy` | 公式の表情そのまま | 今は使っていない |
+
+Unity（`ExpressionUseCase`）が、状態が変わったときだけ基本の表情を送る。再接続のあとは、もう一度送る。食べた直後の `satisfied` は、`FeedSphereUseCase` が数秒の指定付きで送り、終わると基本の表情へ戻る。
 
 StackChan → Quest:
 

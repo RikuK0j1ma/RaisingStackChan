@@ -129,7 +129,7 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
             Assert.AreEqual(1, effect.Plays);
             Assert.AreEqual(1, sound.Plays);
             Assert.AreEqual(1, link.Sent.Count);
-            Assert.AreEqual(StackChanEmotion.Happy, link.Sent[0].emotion);
+            Assert.AreEqual(StackChanEmotion.Satisfied, link.Sent[0].emotion);
             Assert.AreEqual(3000, link.Sent[0].ms);
             Assert.AreEqual(0, sut.TrackedCount);
         }
@@ -190,7 +190,7 @@ namespace RikuK0j1ma.RaisingStackChan.Tests.EditMode
         }
 
         [Test]
-        public void ConsecutiveFeeding_SendsHappyEachTime()
+        public void ConsecutiveFeeding_SendsSatisfiedEachTime()
         {
             SpawnTracked(Vector3.zero);
             sut.Tick(1f);

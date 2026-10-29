@@ -59,6 +59,9 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
 
         public float LastPitchDeg => pitch;
 
+        /// <summary>True while the target is a food sphere, false while it is the headset (valid while <see cref="IsActive"/>).</summary>
+        public bool IsLookingAtFood { get; private set; }
+
         /// <summary>What StackChan is looking at (world position) while <see cref="IsActive"/>, for the scene view.</summary>
         public Vector3 LastLookAt { get; private set; }
 
@@ -124,7 +127,8 @@ namespace RikuK0j1ma.RaisingStackChan.UseCase
             if (!head.TryGetHeadPosition(out Vector3 headPosition)) return false;
 
             Vector3 lookAt = headPosition;
-            if (TrySelectSphere(face, out Vector3 spherePosition)) lookAt = spherePosition;
+            IsLookingAtFood = TrySelectSphere(face, out Vector3 spherePosition);
+            if (IsLookingAtFood) lookAt = spherePosition;
 
             LastLookAt = lookAt;
             StackChanFrame.From(face, rig).Compute(lookAt, out targetYaw, out targetPitch);
