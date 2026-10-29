@@ -23,7 +23,7 @@ namespace RikuK0j1ma.RaisingStackChan.Editor
             // Wait until the editor has finished loading and importing.
             EditorApplication.delayCall += () =>
             {
-                if (EditorApplication.isPlayingOrWillEnterPlaymode) return;
+                if (EditorApplication.isPlayingOrWillChangePlaymode) return;
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
                 if (prefab == null) Build(false);
                 else AssignToConfig(prefab);

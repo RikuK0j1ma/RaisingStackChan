@@ -76,9 +76,11 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
                 return -1;
             }
 
-            var go = Object.Instantiate(config.Prefab, root);
-            go.name = "MangaMeat";
-            go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            // The model keeps its own root rotation (the FBX is Z-up, so it is turned 270 degrees about X).
+            // Everything below moves the holder, never the model root.
+            var go = new GameObject("MangaMeat");
+            go.transform.SetParent(root, false);
+            Object.Instantiate(config.Prefab, go.transform);
 
             if (!TryFindParts(go, out var meat, out var bone))
             {
