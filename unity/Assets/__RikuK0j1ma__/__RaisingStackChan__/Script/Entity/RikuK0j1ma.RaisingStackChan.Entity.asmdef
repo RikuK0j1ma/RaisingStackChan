@@ -1,0 +1,14 @@
+{
+    "name": "RikuK0j1ma.RaisingStackChan.Entity",
+    "rootNamespace": "RikuK0j1ma.RaisingStackChan.Entity",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

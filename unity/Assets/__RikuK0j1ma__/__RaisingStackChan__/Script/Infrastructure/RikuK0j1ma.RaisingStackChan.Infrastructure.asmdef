@@ -1,0 +1,24 @@
+{
+    "name": "RikuK0j1ma.RaisingStackChan.Infrastructure",
+    "rootNamespace": "RikuK0j1ma.RaisingStackChan.Infrastructure",
+    "references": [
+        "RikuK0j1ma.RaisingStackChan.Entity",
+        "RikuK0j1ma.RaisingStackChan.UseCase",
+        "RikuK0j1ma.RaisingStackChan.Extension",
+        "RikuK0j1ma.RaisingStackChan.Utility",
+        "UniTask",
+        "MessagePipe",
+        "LitMotion",
+        "Unity.InputSystem",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,24 @@
+{
+    "name": "RikuK0j1ma.RaisingStackChan.DebugTools",
+    "rootNamespace": "RikuK0j1ma.RaisingStackChan.DebugTools",
+    "references": [
+        "RikuK0j1ma.RaisingStackChan.Entity",
+        "RikuK0j1ma.RaisingStackChan.UseCase",
+        "RikuK0j1ma.RaisingStackChan.Presentation",
+        "RikuK0j1ma.RaisingStackChan.Context",
+        "UniTask",
+        "Unity.InputSystem",
+        "ZString",
+        "Unity.TextMeshPro",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": ["RSC_DEVELOPMENT"],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

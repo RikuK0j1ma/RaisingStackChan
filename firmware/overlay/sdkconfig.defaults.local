@@ -1,0 +1,5 @@
+# Picked up by upstream CMakeLists (sdkconfig.defaults.local overlay). Needed by MOGUMOGU.
+# If the working copy's sdkconfig already exists, build.ps1 deletes it when an option below is missing from it.
+CONFIG_HTTPD_WS_SUPPORT=y
+# The token check and client registration run in the WebSocket post-handshake callback
+CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT=y

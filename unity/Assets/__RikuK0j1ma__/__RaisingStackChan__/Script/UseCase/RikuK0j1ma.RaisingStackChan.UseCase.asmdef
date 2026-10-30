@@ -1,0 +1,20 @@
+{
+    "name": "RikuK0j1ma.RaisingStackChan.UseCase",
+    "rootNamespace": "RikuK0j1ma.RaisingStackChan.UseCase",
+    "references": [
+        "RikuK0j1ma.RaisingStackChan.Entity",
+        "RikuK0j1ma.RaisingStackChan.Utility",
+        "RikuK0j1ma.RaisingStackChan.Extension",
+        "UniTask",
+        "MessagePipe"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
