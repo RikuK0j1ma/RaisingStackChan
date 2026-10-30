@@ -473,6 +473,9 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         {
             if (root != null) return;
             root = new GameObject("Foods").transform;
+#if UNITY_EDITOR || RSC_DEVELOPMENT
+            root.gameObject.AddComponent<MangaMeatBiteTester>().Initialize(this);
+#endif
         }
 
         private static int[] BuildBiteIds()
