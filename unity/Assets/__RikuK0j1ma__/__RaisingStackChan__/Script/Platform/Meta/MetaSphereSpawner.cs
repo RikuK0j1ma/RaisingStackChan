@@ -183,7 +183,13 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             food.Bites[food.BiteCount++] = new Vector4(localCenter.x, localCenter.y, localCenter.z, radius);
             food.ApplyBites(metersPerUnit);
 
-            if (!last) return false;
+            if (!last)
+            {
+                food.Caps?.AddBite(localCenter, radius, metersPerUnit);
+                return false;
+            }
+
+            food.Caps?.Clear(); // nothing is left to cut
             food.Finished = true; // only the bone is left; it stays and can still be grabbed
             return true;
         }
@@ -194,6 +200,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
         {
             HandleSpawnInput();
             Sweep();
+            foreach (var pair in foods) pair.Value.Caps?.Tick();
         }
 
         public string DescribeStatus()
@@ -505,6 +512,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             {
                 food.MeatMaterial = new Material(config.MeatMaterial);
                 SetAllMaterials(food.Meat, food.MeatMaterial);
+                food.Caps = MeatBiteCaps.Create(food.Meat, config.VolumeMaterial, config.BiteDepthMaterial, config.BiteCapMaterial);
                 food.ApplyBites(Mathf.Max(food.Meat.transform.lossyScale.x, 1e-5f));
             }
 
@@ -540,6 +548,7 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
             public readonly Vector4[] Bites = new Vector4[SphereConfig.MaxBiteCount];
 
             public Material MeatMaterial;
+            public MeatBiteCaps Caps;
             public int BiteCount;
             public bool IsHeld;
             public bool Finished;
@@ -564,10 +573,12 @@ namespace RikuK0j1ma.RaisingStackChan.Platform.Meta
                 MeatMaterial.SetVector(MeatExtentsId, bounds.extents);
                 for (var i = 0; i < Bites.Length; i++) MeatMaterial.SetVector(BiteIds[i], Bites[i]);
                 MeatMaterial.SetFloat(BiteCountId, BiteCount);
+                Caps?.ApplyBites(Bites, BiteCount, metersPerUnit);
             }
 
             public void Destroy()
             {
+                Caps?.Destroy();
                 if (MeatMaterial != null) Object.Destroy(MeatMaterial);
                 if (Root != null) Object.Destroy(Root.gameObject);
             }

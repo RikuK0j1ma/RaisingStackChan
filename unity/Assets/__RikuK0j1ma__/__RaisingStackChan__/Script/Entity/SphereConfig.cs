@@ -18,6 +18,15 @@ namespace RikuK0j1ma.RaisingStackChan.Entity
         [Tooltip("Material of the meat (MangaMeat shader). Copied per food, because each one has its own bites.")]
         [SerializeField] private Material meatMaterial;
 
+        [Tooltip("Cut face, step 2 (MangaMeatVolume shader): counts the meat volume in the stencil. Copied per food.")]
+        [SerializeField] private Material volumeMaterial;
+
+        [Tooltip("Cut face, step 1 (MangaMeatBiteDepth shader): depth of the invisible bite spheres. Copied per food.")]
+        [SerializeField] private Material biteDepthMaterial;
+
+        [Tooltip("Cut face, step 3 (MangaMeatBiteCap shader): the cut face pattern. Copied per food.")]
+        [SerializeField] private Material biteCapMaterial;
+
         [Tooltip("Material of the bone (MangaMeat shader, no bites).")]
         [SerializeField] private Material boneMaterial;
 
@@ -45,6 +54,9 @@ namespace RikuK0j1ma.RaisingStackChan.Entity
         public GameObject Prefab => prefab;
         public Material MeatMaterial => meatMaterial;
         public Material BoneMaterial => boneMaterial;
+        public Material VolumeMaterial => volumeMaterial;
+        public Material BiteDepthMaterial => biteDepthMaterial;
+        public Material BiteCapMaterial => biteCapMaterial;
         public float BoneLength => boneLength;
         public float Radius => radius;
         public int BiteCount => Mathf.Clamp(biteCount, 1, MaxBiteCount);
