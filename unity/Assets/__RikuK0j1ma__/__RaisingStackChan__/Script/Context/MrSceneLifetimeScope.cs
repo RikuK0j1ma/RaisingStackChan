@@ -50,7 +50,7 @@ namespace RikuK0j1ma.RaisingStackChan.Context
 #endif
 
             builder.Register<SuckInEatEffect>(Lifetime.Singleton).As<IEatEffect>(); // takes SphereConfig
-            builder.Register<NullEatSound>(Lifetime.Singleton).As<IEatSound>();
+            builder.Register<ClipSfxPlayer>(Lifetime.Singleton).As<IEatSound>().As<IHungrySound>();
             builder.Register<FeedSphereUseCase>(Lifetime.Singleton); // subscribes to ISphereSpawner.Spawned itself
             builder.RegisterEntryPoint<FeedSphereEntryPoint>();
 
@@ -90,6 +90,9 @@ namespace RikuK0j1ma.RaisingStackChan.Context
             // Face per state: Hungry / Needy / Neutral, sent when it changes (#37).
             builder.Register<ExpressionUseCase>(Lifetime.Singleton);
             builder.RegisterEntryPoint<ExpressionEntryPoint>();
+            // Drool sound now and then while chasing food (plays on the headset).
+            builder.Register<HungrySoundUseCase>(Lifetime.Singleton);
+            builder.RegisterEntryPoint<HungrySoundEntryPoint>();
             // The "StackChan" object (neck frame) in the scene, with debug drawing in the editor / dev builds (#35).
             builder.RegisterEntryPoint<StackChanRigEntryPoint>();
 
